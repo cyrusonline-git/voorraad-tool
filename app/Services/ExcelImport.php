@@ -84,6 +84,7 @@ class ExcelImport
             throw new \InvalidArgumentException("Onbekend uploadtype: $type");
         }
         @set_time_limit(600);
+        @ini_set('memory_limit', '512M');
 
         $upload = Upload::create([
             'type' => $type, 'bestandsnaam' => $bestandsnaam, 'pad' => null,
