@@ -1,18 +1,43 @@
 @extends('layouts.app')
 @section('titel', 'Fleet')
+@php($statusNaam = \App\Models\Materieel::STATUSSEN)
 @section('inhoud')
-<div class="page-header d-flex align-items-center gap-3 mb-4">
-    <div class="kpi-icon" style="width:52px;height:52px;border-radius:12px;background:var(--boels-orange);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.6rem;"><i class="bi bi-truck"></i></div>
-    <div><h1>Fleet</h1><p>Totaaloverzicht: welk materieel staat waar, met welke status</p></div>
+@include('dashboard._kop', ['icoon' => 'truck', 'titel' => 'Fleet', 'tekst' => 'Totaaloverzicht: welk materieel staat waar, met welke status'])
+<div class="row g-3 mb-4">
+    @foreach(['available' => '#198754', 'in_service' => '#ffc107', 'in_repair' => '#dc3545', 'on_hire' => '#6c757d'] as $code => $kl)
+        @include('dashboard._tegel', ['icoon' => 'box-seam', 'waarde' => number_format($fleetStatus[$code] ?? 0, 0, ',', '.'), 'label' => $statusNaam[$code][0].' (hele vloot)', 'link' => $materieel ? route('uploads.toon', [$materieel, 'status' => $code]) : '#', 'kleur' => $kl])
+    @endforeach
 </div>
-@include('dashboard._depots')
-<div class="card">
-    <div class="card-header"><i class="bi bi-list-check me-2 text-boels"></i>Wat komt er op dit dashboard</div>
-    <div class="card-body">
-        <ul class="mb-0">
-            <li><strong>Fase 2:</strong> de volledige materieellijst (laatste upload) doorzoekbaar op machinenummer, subgroep, depot, area en status.</li>
-            <li><strong>Fase 4:</strong> dezelfde voorraad- en service-overzichten als de manager, over alle depots.</li>
-        </ul>
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center">Per depot <a href="{{ route('voorraad.depots') }}" class="btn btn-sm btn-outline-boels ms-auto">Details</a></div>
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Depot</th><th class="text-end">Available</th><th class="text-end">Service</th><th class="text-end">Repair</th><th class="text-end">On Hire</th><th class="text-end">Totaal</th><th>Minimum</th></tr></thead>
+                <tbody>
+                @foreach($depots as $r)
+                    <tr><td class="fw-semibold">{{ $r['nummer'] }} — {{ $r['depot']->naam }}</td><td class="text-end">{{ $r['available'] }}</td><td class="text-end">{{ $r['in_service'] }}</td><td class="text-end">{{ $r['in_repair'] }}</td><td class="text-end">{{ $r['on_hire'] }}</td><td class="text-end">{{ $r['totaal'] }}</td>
+                        <td>@if($r['ingesteld'] === 0)<span class="badge bg-light text-dark border">niet ingesteld</span>@elseif($r['ok'])<span class="badge bg-success">gehaald</span>@else<span class="badge bg-danger">{{ $r['tekorten'] }} tekort</span>@endif</td></tr>
+                @endforeach
+                </tbody></table></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header">Vloot per area</div>
+            <div class="card-body"><div class="d-flex flex-wrap gap-2">@foreach($fleetArea as $a => $n)<span class="badge bg-secondary">{{ number_format($n, 0, ',', '.') }}</span> <span class="me-3 small">{{ $a ?: 'onbekend' }}</span>@endforeach</div></div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header">Grootste subgroepen</div>
+            <ul class="list-group list-group-flush small">
+                @foreach($topSubgroepen as $s)<li class="list-group-item d-flex justify-content-between"><span><strong>{{ $s->subgroep_nr }}</strong> {{ $s->naam }}</span><span class="badge bg-secondary">{{ number_format($s->n, 0, ',', '.') }}</span></li>@endforeach
+            </ul>
+        </div>
+        <div class="d-grid gap-2">
+            @if($materieel)<a href="{{ route('uploads.toon', $materieel) }}" class="btn btn-boels"><i class="bi bi-search me-1"></i>Materieellijst doorzoeken</a>@endif
+            <a href="{{ route('uploads.index') }}" class="btn btn-outline-secondary"><i class="bi bi-upload me-1"></i>Nieuwe materieellijst uploaden</a>
+            <a href="{{ route('aanvragen.index') }}" class="btn btn-outline-secondary"><i class="bi bi-envelope-paper me-1"></i>Aanvragen ({{ $aanvragenWeek }} deze week)</a>
+        </div>
     </div>
 </div>
 @endsection
