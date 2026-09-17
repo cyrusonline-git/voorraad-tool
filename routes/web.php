@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\DepotController;
 use App\Http\Controllers\Admin\InstellingenController;
+use App\Http\Controllers\Admin\KolomController;
+use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RolController;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +16,12 @@ Route::middleware('core')->group(function () {
     Route::post('/kies-rol', [RolController::class, 'opslaan'])->name('kies-rol.opslaan');
     Route::get('/geen-toegang', [RolController::class, 'geenToegang'])->name('geen-toegang');
 
+    // Uploads (iedereen met een rol mag uploaden)
+    Route::get('/uploads', [UploadController::class, 'index'])->name('uploads.index');
+    Route::post('/uploads', [UploadController::class, 'opslaan'])->name('uploads.opslaan');
+    Route::get('/uploads/{upload}', [UploadController::class, 'toon'])->name('uploads.toon');
+    Route::delete('/uploads/{upload}', [UploadController::class, 'verwijder'])->name('uploads.verwijder');
+
     // Beheer (alleen actieve rol admin)
     Route::prefix('beheer')->name('admin.')->middleware('rol:admin')->group(function () {
         Route::get('/instellingen', [InstellingenController::class, 'index'])->name('instellingen');
@@ -21,6 +29,8 @@ Route::middleware('core')->group(function () {
         Route::get('/depots', [DepotController::class, 'index'])->name('depots');
         Route::post('/depots/sync', [DepotController::class, 'sync'])->name('depots.sync');
         Route::post('/depots', [DepotController::class, 'opslaan'])->name('depots.opslaan');
+        Route::get('/kolommen', [KolomController::class, 'index'])->name('kolommen');
+        Route::post('/kolommen', [KolomController::class, 'opslaan'])->name('kolommen.opslaan');
     });
 });
 
