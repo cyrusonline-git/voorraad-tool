@@ -132,17 +132,25 @@ class Beschikbaarheid
                 $perDepot[$nr]['depot_naam'] = $depotNamen[$nr] ?? $m->depot_naam ?? $nr;
                 $perDepot[$nr]['depot_id'] = $depotIds[$nr] ?? null;
                 $perDepot[$nr]['eigen'] = (string) $nr === (string) $eigenDepotNr;
-                $sleutel = $sub.'|'.$regel->id;
-                $perDepot[$nr]['regels'][$sleutel] ??= [
+                // Dezelfde subgroep uit meerdere orderregels wordt samengevoegd tot één regel met totaal aantal
+                $perDepot[$nr]['regels'][$sub] ??= [
                     'regel' => $regel, 'subgroep_nr' => $sub, 'omschrijving' => $regel->omschrijving ?: ($m->subgroep_naam ?: $m->omschrijving),
-                    'aantal' => 0, 'available' => 0, 'in_service' => 0, 'in_repair' => 0,
+                    'aantal' => 0, 'available' => 0, 'in_service' => 0, 'in_repair' => 0, 'contracten' => [],
                 ];
-                $perDepot[$nr]['regels'][$sleutel]['aantal']++;
-                $perDepot[$nr]['regels'][$sleutel][$m->status_code]++;
+                $perDepot[$nr]['regels'][$sub]['aantal']++;
+                $perDepot[$nr]['regels'][$sub][$m->status_code]++;
+                if ($regel->contract_nr) {
+                    $perDepot[$nr]['regels'][$sub]['contracten'][$regel->contract_nr] = true;
+                }
             }
         }
 
         foreach ($perDepot as &$d) {
+            foreach ($d['regels'] as &$rg) {
+                $rg['contracten'] = array_keys($rg['contracten']);
+            }
+            unset($rg);
+            usort($d['regels'], fn ($a, $b) => $b['aantal'] <=> $a['aantal']);
             $d['regels'] = array_values($d['regels']);
             $d['aantal'] = array_sum(array_column($d['regels'], 'aantal'));
         }

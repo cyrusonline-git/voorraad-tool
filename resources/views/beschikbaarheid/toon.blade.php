@@ -55,12 +55,12 @@
             @endunless
         </div>
         <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
-            <thead><tr><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract</th>@endif<th class="text-end">Aantal</th><th>Waarvan</th></tr></thead>
+            <thead><tr><th style="width:90px">Aantal</th><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract(en)</th>@endif<th>Waarvan</th></tr></thead>
             <tbody>
             @foreach($d['regels'] as $rij)
-                <tr><td class="fw-semibold">{{ $rij['subgroep_nr'] }}</td><td class="small">{{ $rij['omschrijving'] }}</td>
-                    @if($upload->type === 'project')<td class="small">{{ $rij['regel']->contract_nr }}</td>@endif
-                    <td class="text-end fw-bold">{{ $rij['aantal'] }}</td>
+                <tr><td><span class="badge bg-boels fs-6 px-3">{{ $rij['aantal'] }}×</span></td>
+                    <td class="fw-semibold">{{ $rij['subgroep_nr'] }}</td><td>{{ $rij['omschrijving'] }}</td>
+                    @if($upload->type === 'project')<td class="small">{{ implode(', ', $rij['contracten']) }}</td>@endif
                     <td class="small">@if($rij['available'])<span class="badge bg-success">{{ $rij['available'] }} Available</span> @endif @if($rij['in_service'])<span class="badge bg-warning text-dark">{{ $rij['in_service'] }} In Service</span> @endif @if($rij['in_repair'])<span class="badge bg-danger">{{ $rij['in_repair'] }} In Repair</span>@endif</td></tr>
             @endforeach
             </tbody></table></div>

@@ -21,15 +21,15 @@
             <div class="card-header d-flex align-items-center">Aan te vragen bij {{ $depot->naam }} <span class="badge bg-secondary ms-2">{{ count($regels) }} subgroepen</span>
                 <span class="ms-auto small"><a href="#" onclick="document.querySelectorAll('.gek').forEach(c=>c.checked=true);return false;">alles</a> · <a href="#" onclick="document.querySelectorAll('.gek').forEach(c=>c.checked=false);return false;">niets</a></span></div>
             <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
-                <thead><tr><th></th><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract</th>@endif<th style="width:110px">Aantal</th><th>Bij dit depot</th></tr></thead>
+                <thead><tr><th></th><th style="width:120px">Aantal</th><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract(en)</th>@endif<th>Bij dit depot</th></tr></thead>
                 <tbody>
                 @forelse($regels as $i => $r)
                     <tr>
                         <td><input type="checkbox" class="form-check-input gek" name="regels[{{ $i }}][gekozen]" value="1" checked>
                             <input type="hidden" name="regels[{{ $i }}][subgroep_nr]" value="{{ $r['subgroep_nr'] }}"><input type="hidden" name="regels[{{ $i }}][omschrijving]" value="{{ $r['omschrijving'] }}"></td>
-                        <td class="fw-semibold">{{ $r['subgroep_nr'] }}</td><td class="small">{{ $r['omschrijving'] }}</td>
-                        @if($upload->type === 'project')<td class="small">{{ $r['regel']->contract_nr }}</td>@endif
-                        <td><input type="number" min="0" max="9999" class="form-control form-control-sm" name="regels[{{ $i }}][aantal]" value="{{ $r['aantal'] }}"></td>
+                        <td><input type="number" min="0" max="9999" class="form-control form-control-sm fw-bold text-boels" name="regels[{{ $i }}][aantal]" value="{{ $r['aantal'] }}"></td>
+                        <td class="fw-semibold">{{ $r['subgroep_nr'] }}</td><td>{{ $r['omschrijving'] }}</td>
+                        @if($upload->type === 'project')<td class="small">{{ implode(', ', $r['contracten']) }}</td>@endif
                         <td class="small">@if($r['available'])<span class="badge bg-success">{{ $r['available'] }} Available</span> @endif @if($r['in_service'])<span class="badge bg-warning text-dark">{{ $r['in_service'] }} In Service</span> @endif @if($r['in_repair'])<span class="badge bg-danger">{{ $r['in_repair'] }} In Repair</span>@endif</td>
                     </tr>
                 @empty
