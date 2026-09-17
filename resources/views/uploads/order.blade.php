@@ -8,7 +8,7 @@
         <p>{{ $upload->bestandsnaam }} · {{ $upload->aantal_rijen }} regels · ingelezen {{ $upload->created_at->format('d-m-Y H:i') }} door {{ $upload->gebruiker_naam ?: '—' }}@if($upload->depot_nummer) · vestiging {{ $upload->depot_nummer }}@endif</p>
     </div>
     <a href="{{ route('uploads.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Uploads</a>
-    <a href="#" class="btn btn-boels btn-sm disabled" title="Fase 2: zoeken in de materieellijst"><i class="bi bi-search me-1"></i>Beschikbaarheid zoeken <span class="fase-badge">volgt</span></a>
+    <a href="{{ route('beschikbaarheid', $upload) }}" class="btn btn-boels btn-sm"><i class="bi bi-search me-1"></i>Beschikbaarheid zoeken</a>
 </div>
 @if($upload->meldingen)
     <div class="alert alert-warning small"><i class="bi bi-exclamation-triangle me-2"></i>{!! implode('<br>', array_map('e', $upload->meldingen)) !!}</div>
@@ -24,7 +24,7 @@
         </div>
         @endif
     @endforeach
-    <div class="col-12 small text-muted"><strong>{{ $teZoeken }}</strong> regel(s) met status "Niet toegekend" moeten in de materieellijst gezocht worden; de andere statussen zijn al geregeld of niet nodig.</div>
+    <div class="col-12 small text-muted"><strong>{{ \App\Services\Beschikbaarheid::teZoeken($upload)->count() }}</strong> regel(s) moeten in de materieellijst gezocht worden (status "Niet toegekend"{{ (int) setting('zoek_toegekend_zonder_nummer', 1) ? ', of "Toegekend" zonder uniek nummer' : '' }}); de andere statussen zijn al geregeld of niet nodig.</div>
 </div>
 <div class="card">
     <div class="card-header d-flex flex-wrap align-items-center gap-2">

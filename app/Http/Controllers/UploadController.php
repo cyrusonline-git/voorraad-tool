@@ -24,9 +24,12 @@ class UploadController extends Controller
 
     public function opslaan(Request $request, ExcelImport $import)
     {
+        if ($request->server('CONTENT_LENGTH') > 0 && ! $request->hasFile('bestand') && empty($request->all())) {
+            return back()->with('fout', 'Het bestand is groter dan de server toestaat ('.ini_get('post_max_size').'). Neem contact op met de beheerder.');
+        }
         $data = $request->validate([
             'type' => ['required', 'in:materieel,contract,project'],
-            'bestand' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:30720'],
+            'bestand' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:65536'],
         ]);
         $bestand = $request->file('bestand');
         try {

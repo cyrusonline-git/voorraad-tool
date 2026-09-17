@@ -16,6 +16,7 @@ class InstellingenController extends Controller
             'app_titel' => ['Naam in de kop', 'Voorraad tool', 'Wordt bovenin elke pagina getoond.'],
             'mail_van_naam' => ['Afzendernaam aanvraagmails', 'Boels Industrial — Voorraad tool', 'Naam waarmee aanvraagmails naar depots worden verstuurd.'],
             'mail_cc' => ['CC bij aanvraagmails', '', 'Optioneel: één of meer adressen, gescheiden door komma.'],
+            'zoek_toegekend_zonder_nummer' => ['Ook "Toegekend" zonder uniek nummer zoeken (1 = ja, 0 = nee)', '1', 'Projecten: regels met status Allocated waarbij Item No alleen het subgroepnummer is, worden dan ook gezocht.'],
             'orders_horizon_dagen' => ['Horizon aankomende orders (dagen)', '14', 'Werkplaats: orders met ingangsdatum binnen dit aantal dagen worden meegenomen.'],
         ];
     }

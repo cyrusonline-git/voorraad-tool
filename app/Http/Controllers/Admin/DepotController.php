@@ -13,7 +13,19 @@ class DepotController extends Controller
     {
         $depots = Depot::orderBy('actief', 'desc')->orderBy('area')->orderBy('volgorde')->get();
 
-        return view('admin.depots', ['depots' => $depots, 'gesynct' => $depots->max('gesynct_op')]);
+        return view('admin.depots', [
+            'depots' => $depots, 'gesynct' => $depots->max('gesynct_op'),
+            'materieelDepots' => \App\Services\DepotKoppeling::uitMaterieel(),
+        ]);
+    }
+
+    /** Depotnummers automatisch koppelen op naam (materieellijst ↔ CORE). */
+    public function koppel(\App\Services\DepotKoppeling $koppeling)
+    {
+        $meldingen = [];
+        $n = $koppeling->koppelAutomatisch($meldingen);
+
+        return redirect()->route('admin.depots')->with('ok', "$n depot(s) automatisch gekoppeld.".($meldingen ? ' '.implode(' ', $meldingen) : ''));
     }
 
     /** Opnieuw ophalen uit CORE. */

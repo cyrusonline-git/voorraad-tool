@@ -19,6 +19,7 @@ class Materieel extends Model
         'in_transfer' => ['In Transfer', 'Onderweg', 4],
         'on_hire'     => ['On Hire', 'In huur', 5],
         'own_use'     => ['Own Use', 'Eigen gebruik', 6],
+        'composed'    => ['In Composed Item', 'Onderdeel van samenstel', 7],
         'onbekend'    => ['?', 'Onbekend', 9],
     ];
 

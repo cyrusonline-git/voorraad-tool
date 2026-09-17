@@ -23,7 +23,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold" for="bestand">Excel-bestand</label>
                     <input type="file" class="form-control" id="bestand" name="bestand" accept=".xlsx,.xls,.csv" required>
-                    <div class="form-text">.xlsx, .xls of .csv, max. 30 MB. Kolomindeling: Beheer → Kolomindeling.</div>
+                    <div class="form-text">.xlsx of .csv, max. {{ ini_get('upload_max_filesize') }}. De materieellijst van ±52.000 regels leest in ongeveer een halve minuut in. Kolomindeling: Beheer → Kolomindeling.</div>
                 </div>
                 <button class="btn btn-boels w-100"><i class="bi bi-cloud-upload me-1"></i>Inlezen</button>
             </div>
