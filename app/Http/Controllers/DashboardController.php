@@ -14,6 +14,12 @@ class DashboardController extends Controller
     {
         $depotSync->syncIndienNodig();
         $rol = actieve_rol();
+        if ($rol === 'werkplaats') {
+            return redirect()->route('voorraad.werkplaats');
+        }
+        if (in_array($rol, ['manager', 'fleet'], true)) {
+            return redirect()->route('voorraad.depots');
+        }
         $view = 'dashboard.'.$rol;
         if (! view()->exists($view)) {
             abort(500, "Geen dashboard voor rol $rol");

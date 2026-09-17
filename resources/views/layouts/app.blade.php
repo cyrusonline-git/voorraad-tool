@@ -55,6 +55,14 @@
                 @if(in_array($rol, ['binnendienst', 'werkplaats', 'manager', 'fleet', 'admin']))
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('uploads.*', 'beschikbaarheid', 'aanvragen.nieuw') ? 'active' : '' }}" href="{{ route('uploads.index') }}"><i class="bi bi-upload me-1"></i>Uploads</a></li>
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('aanvragen.index', 'aanvragen.toon') ? 'active' : '' }}" href="{{ route('aanvragen.index') }}"><i class="bi bi-envelope-paper me-1"></i>Aanvragen</a></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ request()->routeIs('voorraad.*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown"><i class="bi bi-boxes me-1"></i>Voorraad</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ route('voorraad.werkplaats') }}"><i class="bi bi-wrench-adjustable me-2"></i>Werkplaats: nakijklijst</a></li>
+                        <li><a class="dropdown-item" href="{{ route('voorraad.depots') }}"><i class="bi bi-bar-chart-line me-2"></i>Alle depots</a></li>
+                        <li><a class="dropdown-item" href="{{ route('voorraad.minimaal') }}"><i class="bi bi-sliders2 me-2"></i>Minimale voorraad instellen</a></li>
+                    </ul>
+                </li>
                 @endif
                 @if($rol === 'admin')
                 <li class="nav-item dropdown">

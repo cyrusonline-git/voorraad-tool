@@ -10,10 +10,11 @@
     <div class="card-header"><i class="bi bi-list-check me-2 text-boels"></i>Wat komt er op dit dashboard</div>
     <div class="card-body">
         <ul class="mb-0">
-            <li><strong>Fase 2:</strong> materieel-Excel, contract-Excel en project-Excel uploaden; per regel met status <em>Niet toegekend</em> zoeken in de materieellijst op subgroep (eerst eigen depot, daarna per depot, eerst Available, dan In Service, dan In Repair).</li>
-            <li><strong>Fase 3:</strong> per depot met één klik een aanvraagmail versturen (template door de beheerder in te stellen).</li>
+            <li><a href="{{ route('uploads.index') }}">Uploads</a>: materieellijst, contract- en project-Excel inlezen.</li>
+            <li>Bij een contract/project: <strong>Beschikbaarheid zoeken</strong> — regels "Niet toegekend" worden gezocht in de materieellijst, eerst op het eigen depot, daarna per depot (Available → In Service → In Repair).</li>
+            <li>Per depot met één klik een <strong>aanvraagmail</strong>; alle verstuurde aanvragen staan onder <a href="{{ route('aanvragen.index') }}">Aanvragen</a>.</li>
+            <li><a href="{{ route('voorraad.depots') }}">Voorraad</a>: minimale voorraad en service/reparatie per depot.</li>
             <li><strong>Later:</strong> rekening houden met toekomstige reserveringen op het depot.</li>
-            <li>Dynamische filters op contract, subgroep, machinenummer en depot.</li>
         </ul>
     </div>
 </div>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\MailController;
 use App\Http\Controllers\AanvraagController;
 use App\Http\Controllers\BeschikbaarheidController;
 use App\Http\Controllers\UploadController;
+use App\Http\Controllers\VoorraadController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RolController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,13 @@ Route::middleware('core')->group(function () {
     Route::get('/aanvragen/{aanvraag}', [AanvraagController::class, 'toon'])->name('aanvragen.toon');
     Route::get('/uploads/{upload}/aanvraag', [AanvraagController::class, 'nieuw'])->name('aanvragen.nieuw');
     Route::post('/uploads/{upload}/aanvraag', [AanvraagController::class, 'verstuur'])->name('aanvragen.verstuur');
+
+    // Minimale voorraad, werkplaatslijst, depotoverzicht
+    Route::get('/voorraad/werkplaats', [VoorraadController::class, 'werkplaats'])->name('voorraad.werkplaats');
+    Route::get('/voorraad/depots', [VoorraadController::class, 'depots'])->name('voorraad.depots');
+    Route::get('/voorraad/minimaal', [VoorraadController::class, 'minimaal'])->name('voorraad.minimaal');
+    Route::post('/voorraad/minimaal', [VoorraadController::class, 'minimaalOpslaan'])->name('voorraad.minimaal.opslaan');
+    Route::post('/voorraad/minimaal/kopieer', [VoorraadController::class, 'minimaalKopieer'])->name('voorraad.minimaal.kopieer');
 
     // Beheer (alleen actieve rol admin)
     Route::prefix('beheer')->name('admin.')->middleware('rol:admin')->group(function () {
