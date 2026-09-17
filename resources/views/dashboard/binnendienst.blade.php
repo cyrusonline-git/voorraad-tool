@@ -11,7 +11,7 @@
     <div class="card-body">
         <ul class="mb-0">
             <li><a href="{{ route('uploads.index') }}">Uploads</a>: materieellijst, contract- en project-Excel inlezen.</li>
-            <li>Bij een contract/project: <strong>Beschikbaarheid zoeken</strong> — regels "Niet toegekend" worden gezocht in de materieellijst, eerst op het eigen depot, daarna per depot (Available → In Service → In Repair).</li>
+            <li>Bij een contract/project: <strong>Beschikbaarheid zoeken</strong> — regels "Niet toegekend" worden gezocht in de materieellijst, eerst het eigen depot volledig (Available, dan In Service), daarna andere depots; In Repair als laatste.</li>
             <li>Per depot met één klik een <strong>aanvraagmail</strong>; alle verstuurde aanvragen staan onder <a href="{{ route('aanvragen.index') }}">Aanvragen</a>.</li>
             <li><a href="{{ route('voorraad.depots') }}">Voorraad</a>: minimale voorraad en service/reparatie per depot.</li>
             <li><strong>Later:</strong> rekening houden met toekomstige reserveringen op het depot.</li>

@@ -6,7 +6,7 @@
 <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-3">
     <div class="flex-grow-1">
         <h1><i class="bi bi-search me-2 text-boels"></i>Beschikbaarheid — {{ $upload->typeNaam() }} {{ $upload->referentie }}</h1>
-        <p>Gezocht in de materieellijst van {{ $materieel->created_at->format('d-m-Y H:i') }} ({{ number_format($materieel->aantal_rijen, 0, ',', '.') }} machines). Eerst het eigen depot, daarna per depot; volgorde Available → In Service → In Repair.</p>
+        <p>Gezocht in de materieellijst van {{ $materieel->created_at->format('d-m-Y H:i') }} ({{ number_format($materieel->aantal_rijen, 0, ',', '.') }} machines). Eerst het eigen depot volledig (Available, dan In Service), daarna andere depots (Available, dan In Service); In Repair alleen als laatste.</p>
     </div>
     <a href="{{ route('uploads.toon', $upload) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Regels</a>
 </div>

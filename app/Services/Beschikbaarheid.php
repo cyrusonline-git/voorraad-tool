@@ -10,8 +10,9 @@ use Illuminate\Support\Collection;
 
 /**
  * Voor een contract/project: per te zoeken regel de machines uit de actuele
- * materieellijst, eerst op het eigen depot, daarna per depot; statusvolgorde
- * Available → In Service → In Repair. Machines worden niet dubbel toegewezen
+ * materieellijst: eerst het eigen depot volledig (Available, dan In Service),
+ * daarna andere depots (Available, dan In Service), In Repair als laatste.
+ * Machines worden niet dubbel toegewezen
  * over regels met dezelfde subgroep.
  */
 class Beschikbaarheid
@@ -73,16 +74,24 @@ class Beschikbaarheid
 
             $toewijzing = [];
             $rest = $nodig;
-            foreach (self::TIERS as $tier) {
+            // Volgorde (Wim, 17-09-2026): eerst het eigen depot volledig (Available, dan
+            // In Service — die is snel inzetbaar), dan andere depots (Available, dan In
+            // Service; depot met de meeste voorraad eerst), en pas als laatste In Repair.
+            $stappen = [
+                ['eigen', 'available'], ['eigen', 'in_service'],
+                ['ander', 'available'], ['ander', 'in_service'],
+                ['eigen', 'in_repair'], ['ander', 'in_repair'],
+            ];
+            foreach ($stappen as [$waar, $tier]) {
                 if ($rest <= 0) {
                     break;
                 }
-                $tierPool = $pool->where('status_code', $tier);
-                // Eigen depot eerst, daarna depots met de meeste voorraad van deze subgroep.
-                // Let op: groupBy maakt van "759" het getal 759 — daarom altijd als tekst vergelijken.
-                $volgorde = $tierPool->groupBy('depot_nummer')
-                    ->sortBy(fn ($groep, $nr) => ((string) $nr === (string) $eigenDepotNr ? '0' : '1').str_pad((string) (100000 - $groep->count()), 6, '0', STR_PAD_LEFT));
-                foreach ($volgorde as $depotNr => $groep) {
+                $stapPool = $pool->where('status_code', $tier)->filter(fn ($m) => $waar === 'eigen'
+                    ? (string) $m->depot_nummer === (string) $eigenDepotNr
+                    : (string) $m->depot_nummer !== (string) $eigenDepotNr);
+                // groupBy maakt van "759" het getal 759 — sleutels daarom als tekst behandelen
+                $volgorde = $stapPool->groupBy('depot_nummer')->sortByDesc(fn ($groep) => $groep->count());
+                foreach ($volgorde as $groep) {
                     foreach ($groep as $m) {
                         if ($rest <= 0) {
                             break 2;
