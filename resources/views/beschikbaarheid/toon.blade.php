@@ -6,7 +6,7 @@
 <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-3">
     <div class="flex-grow-1">
         <h1><i class="bi bi-search me-2 text-boels"></i>Beschikbaarheid — {{ $upload->typeNaam() }} {{ $upload->referentie }}</h1>
-        <p>Gezocht in de materieellijst van {{ $materieel->created_at->format('d-m-Y H:i') }} ({{ number_format($materieel->aantal_rijen, 0, ',', '.') }} machines). Eerst het eigen depot volledig (Available, dan In Service), daarna andere depots (Available, dan In Service); In Repair alleen als laatste.</p>
+        <p>Gezocht in de materieellijst van {{ $materieel->created_at->format('d-m-Y H:i') }} ({{ number_format($materieel->aantal_rijen, 0, ',', '.') }} machines). Eerst het eigen depot volledig (Available, dan In Service), daarna andere depots (Available, dan In Service); In Repair alleen als laatste. Aanvragen gaan per subgroep en aantal, niet per machinenummer.</p>
     </div>
     <a href="{{ route('uploads.toon', $upload) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Regels</a>
 </div>
@@ -47,21 +47,21 @@
         <div class="card-header d-flex flex-wrap align-items-center gap-2">
             <span><i class="bi bi-geo-alt-fill me-1 text-boels"></i>{{ $d['depot_nummer'] }} — {{ $d['depot_naam'] }}</span>
             @if($d['eigen'])<span class="badge bg-boels">eigen depot</span>@endif
-            <span class="badge bg-secondary">{{ count($d['machines']) }} machines</span>
+            <span class="badge bg-secondary">{{ $d['aantal'] }} stuks · {{ count($d['regels']) }} subgroepen</span>
             @unless($d['eigen'])
             <span class="ms-auto"><a href="{{ route('aanvragen.nieuw', [$upload, 'depot_nr' => $nr, 'eigen' => $eigen]) }}" class="btn btn-sm btn-boels"><i class="bi bi-envelope me-1"></i>Aanvraag mailen</a></span>
+            @else
+            <span class="ms-auto small text-muted">eigen depot: bij de expeditie aanvragen op subgroep</span>
             @endunless
         </div>
         <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
-            <thead><tr><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract</th>@endif<th>Machinenr</th><th>Merk / model</th><th>Status</th><th>Laatste uit-huur</th></tr></thead>
+            <thead><tr><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract</th>@endif<th class="text-end">Aantal</th><th>Waarvan</th></tr></thead>
             <tbody>
-            @foreach($d['machines'] as $rij)
-                @php($m = $rij['machine'])
-                <tr><td class="fw-semibold">{{ $m->subgroep_nr }}</td><td class="small">{{ $rij['regel']->omschrijving ?: $m->omschrijving }}</td>
+            @foreach($d['regels'] as $rij)
+                <tr><td class="fw-semibold">{{ $rij['subgroep_nr'] }}</td><td class="small">{{ $rij['omschrijving'] }}</td>
                     @if($upload->type === 'project')<td class="small">{{ $rij['regel']->contract_nr }}</td>@endif
-                    <td><strong>{{ $m->uniek_nr }}</strong></td><td class="small text-muted">{{ trim(($m->extra['merk'] ?? '').' '.($m->extra['model'] ?? '')) }}</td>
-                    <td><span class="badge {{ $kleur[$m->status_code] ?? 'bg-secondary' }}">{{ $m->status_raw }}</span></td>
-                    <td class="small">{{ $m->laatste_uithuur?->format('d-m-Y') }}</td></tr>
+                    <td class="text-end fw-bold">{{ $rij['aantal'] }}</td>
+                    <td class="small">@if($rij['available'])<span class="badge bg-success">{{ $rij['available'] }} Available</span> @endif @if($rij['in_service'])<span class="badge bg-warning text-dark">{{ $rij['in_service'] }} In Service</span> @endif @if($rij['in_repair'])<span class="badge bg-danger">{{ $rij['in_repair'] }} In Repair</span>@endif</td></tr>
             @endforeach
             </tbody></table></div>
     </div>
@@ -86,7 +86,7 @@
                 <td class="small">
                     @foreach(collect($r['toewijzing'])->groupBy('depot_nummer') as $nr => $ms)
                         <div><span class="badge {{ (string) $nr === (string) $eigen ? 'bg-boels' : 'bg-light text-dark border' }}">{{ $nr }} {{ $depotNamen[$nr] ?? $ms->first()->depot_naam }}</span>
-                        @foreach($ms as $m)<span class="badge {{ $kleur[$m->status_code] ?? 'bg-secondary' }}" title="{{ $m->status_raw }}">{{ $m->uniek_nr }}</span>@endforeach</div>
+                        <strong>{{ $ms->count() }}×</strong> <span class="text-muted">({{ $ms->where('status_code', 'available')->count() }} av / {{ $ms->where('status_code', 'in_service')->count() }} serv / {{ $ms->where('status_code', 'in_repair')->count() }} rep)</span></div>
                     @endforeach
                 </td>
                 <td class="small">

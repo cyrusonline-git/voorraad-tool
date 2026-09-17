@@ -46,13 +46,13 @@ class AanvraagController extends Controller
             return back()->with('fout', 'Depot '.$depotNr.' is niet gekoppeld aan een CORE-depot (Beheer → Depots).');
         }
         $data = $service->bereken($upload, $eigenNr ?: null);
-        $machines = $data['perDepot'][$depotNr]['machines'] ?? [];
+        $regels = $data['perDepot'][$depotNr]['regels'] ?? [];
         $eigenDepot = $eigenNr ? Depot::where('depot_nummer', $eigenNr)->first() : null;
         $verhuurdatum = $upload->regels()->whereNotNull('verhuurdatum')->min('verhuurdatum');
 
         return view('aanvragen.nieuw', [
             'upload' => $upload, 'depot' => $depot, 'eigenDepot' => $eigenDepot, 'eigenNr' => $eigenNr,
-            'machines' => $machines, 'verhuurdatum' => $verhuurdatum,
+            'regels' => $regels, 'verhuurdatum' => $verhuurdatum,
             'aan' => $depot->mailadres(), 'replyTo' => $eigenDepot?->mailadres() ?: (core_gebruiker()['email'] ?? null),
             'voorbeeldOnderwerp' => AanvraagMail::vul(AanvraagMail::template('mail_onderwerp'), [
                 'type' => $upload->typeNaam(), 'referentie' => $upload->referentie, 'eigen_depot' => $eigenDepot?->naam ?? '',
@@ -65,29 +65,38 @@ class AanvraagController extends Controller
         $data = $request->validate([
             'depot_nr' => ['required', 'string'],
             'eigen' => ['nullable', 'string'],
-            'machines' => ['required', 'array', 'min:1'],
-            'machines.*' => ['string'],
+            'regels' => ['required', 'array'],
+            'regels.*.subgroep_nr' => ['required', 'string'],
+            'regels.*.omschrijving' => ['nullable', 'string', 'max:200'],
+            'regels.*.aantal' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'opmerking' => ['nullable', 'string', 'max:2000'],
             'reactie_voor' => ['nullable', 'date'],
             'verhuurdatum' => ['nullable', 'date'],
-        ], ['machines.required' => 'Vink minstens één machine aan.']);
+        ]);
 
         $depot = Depot::where('depot_nummer', $data['depot_nr'])->firstOrFail();
         $eigenDepot = ! empty($data['eigen']) ? Depot::where('depot_nummer', $data['eigen'])->first() : null;
-        $machines = Materieel::actueel()->whereIn('uniek_nr', $data['machines'])->where('depot_nummer', $depot->depot_nummer)->get()->all();
-        if (! $machines) {
-            return back()->with('fout', 'De gekozen machines staan niet (meer) op dit depot in de actuele materieellijst.');
-        }
-        // Omschrijving van de orderregel bij elke machine (op subgroep)
-        $regelInfo = [];
-        $perSub = $upload->regels()->whereNotNull('subgroep_nr')->get()->keyBy('subgroep_nr');
-        foreach ($machines as $m) {
-            if (isset($perSub[$m->subgroep_nr])) {
-                $regelInfo[$m->uniek_nr] = $perSub[$m->subgroep_nr]->omschrijving;
+
+        // Alleen aangevinkte regels met aantal > 0; voorraad van dit depot erbij ter info
+        $regels = [];
+        foreach ($data['regels'] as $r) {
+            $aantal = (int) ($r['aantal'] ?? 0);
+            if (empty($r['gekozen']) || $aantal <= 0) {
+                continue;
             }
+            $sub = preg_replace('/\D+/', '', $r['subgroep_nr']);
+            $voorraad = Materieel::actueel()->where('depot_nummer', $depot->depot_nummer)->where('subgroep_nr', $sub)
+                ->selectRaw('status_code, count(*) as n')->groupBy('status_code')->pluck('n', 'status_code');
+            $regels[] = [
+                'subgroep_nr' => $sub, 'omschrijving' => trim((string) ($r['omschrijving'] ?? '')), 'aantal' => $aantal,
+                'available' => (int) ($voorraad['available'] ?? 0), 'in_service' => (int) ($voorraad['in_service'] ?? 0), 'in_repair' => (int) ($voorraad['in_repair'] ?? 0),
+            ];
+        }
+        if (! $regels) {
+            return back()->withInput()->with('fout', 'Vink minstens één subgroep aan met een aantal groter dan 0.');
         }
 
-        $aanvraag = $mailer->verstuur($upload, $depot, $eigenDepot, $machines, $regelInfo,
+        $aanvraag = $mailer->verstuur($upload, $depot, $eigenDepot, $regels,
             (string) ($data['opmerking'] ?? ''), $data['reactie_voor'] ?? null, $data['verhuurdatum'] ?? null);
 
         if ($aanvraag->status === 'mislukt') {

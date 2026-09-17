@@ -125,17 +125,29 @@ class Beschikbaarheid
                 'niet_inzetbaar' => ($nietInzetbaar[$sub] ?? collect())->pluck('n', 'status_code')->all(),
             ];
 
+            // Per depot op SUBGROEP-niveau (aanvragen gaan altijd per subgroep, nooit per machinenummer)
             foreach ($toewijzing as $m) {
                 $nr = $m->depot_nummer ?: '?';
                 $perDepot[$nr]['depot_nummer'] = $nr;
                 $perDepot[$nr]['depot_naam'] = $depotNamen[$nr] ?? $m->depot_naam ?? $nr;
                 $perDepot[$nr]['depot_id'] = $depotIds[$nr] ?? null;
                 $perDepot[$nr]['eigen'] = (string) $nr === (string) $eigenDepotNr;
-                $perDepot[$nr]['machines'][] = ['regel' => $regel, 'machine' => $m];
+                $sleutel = $sub.'|'.$regel->id;
+                $perDepot[$nr]['regels'][$sleutel] ??= [
+                    'regel' => $regel, 'subgroep_nr' => $sub, 'omschrijving' => $regel->omschrijving ?: ($m->subgroep_naam ?: $m->omschrijving),
+                    'aantal' => 0, 'available' => 0, 'in_service' => 0, 'in_repair' => 0,
+                ];
+                $perDepot[$nr]['regels'][$sleutel]['aantal']++;
+                $perDepot[$nr]['regels'][$sleutel][$m->status_code]++;
             }
         }
 
-        uasort($perDepot, fn ($a, $b) => [$b['eigen'], count($b['machines'])] <=> [$a['eigen'], count($a['machines'])]);
+        foreach ($perDepot as &$d) {
+            $d['regels'] = array_values($d['regels']);
+            $d['aantal'] = array_sum(array_column($d['regels'], 'aantal'));
+        }
+        unset($d);
+        uasort($perDepot, fn ($a, $b) => [$b['eigen'], $b['aantal']] <=> [$a['eigen'], $a['aantal']]);
 
         return [
             'regels' => $uitRegels,

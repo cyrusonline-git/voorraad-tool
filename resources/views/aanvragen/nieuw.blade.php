@@ -4,7 +4,7 @@
 @section('inhoud')
 <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-3">
     <div class="flex-grow-1"><h1><i class="bi bi-envelope me-2 text-boels"></i>Aanvraag aan {{ $depot->depot_nummer }} — {{ $depot->naam }}</h1>
-        <p>{{ $upload->typeNaam() }} {{ $upload->referentie }} · vink aan welke machines je bij dit depot wilt aanvragen</p></div>
+        <p>{{ $upload->typeNaam() }} {{ $upload->referentie }} · vink aan welke subgroepen (en hoeveel) je bij dit depot wilt aanvragen</p></div>
     <a href="{{ route('beschikbaarheid', [$upload, 'depot' => $eigenNr]) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Beschikbaarheid</a>
 </div>
 @if(!$aan)
@@ -18,22 +18,25 @@
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="card">
-            <div class="card-header d-flex align-items-center">Machines bij {{ $depot->naam }} <span class="badge bg-secondary ms-2">{{ count($machines) }}</span>
-                <span class="ms-auto small"><a href="#" onclick="document.querySelectorAll('.mach').forEach(c=>c.checked=true);return false;">alles</a> · <a href="#" onclick="document.querySelectorAll('.mach').forEach(c=>c.checked=false);return false;">niets</a></span></div>
+            <div class="card-header d-flex align-items-center">Aan te vragen bij {{ $depot->naam }} <span class="badge bg-secondary ms-2">{{ count($regels) }} subgroepen</span>
+                <span class="ms-auto small"><a href="#" onclick="document.querySelectorAll('.gek').forEach(c=>c.checked=true);return false;">alles</a> · <a href="#" onclick="document.querySelectorAll('.gek').forEach(c=>c.checked=false);return false;">niets</a></span></div>
             <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
-                <thead><tr><th></th><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract</th>@endif<th>Machinenr</th><th>Merk / model</th><th>Status</th></tr></thead>
+                <thead><tr><th></th><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract</th>@endif<th style="width:110px">Aantal</th><th>Bij dit depot</th></tr></thead>
                 <tbody>
-                @forelse($machines as $rij)
-                    @php($m = $rij['machine'])
-                    <tr><td><input type="checkbox" class="form-check-input mach" name="machines[]" value="{{ $m->uniek_nr }}" checked></td>
-                        <td class="fw-semibold">{{ $m->subgroep_nr }}</td><td class="small">{{ $rij['regel']->omschrijving ?: $m->omschrijving }}</td>
-                        @if($upload->type === 'project')<td class="small">{{ $rij['regel']->contract_nr }}</td>@endif
-                        <td><strong>{{ $m->uniek_nr }}</strong></td><td class="small text-muted">{{ trim(($m->extra['merk'] ?? '').' '.($m->extra['model'] ?? '')) }}</td>
-                        <td><span class="badge {{ $kleur[$m->status_code] ?? 'bg-secondary' }}">{{ $m->status_raw }}</span></td></tr>
+                @forelse($regels as $i => $r)
+                    <tr>
+                        <td><input type="checkbox" class="form-check-input gek" name="regels[{{ $i }}][gekozen]" value="1" checked>
+                            <input type="hidden" name="regels[{{ $i }}][subgroep_nr]" value="{{ $r['subgroep_nr'] }}"><input type="hidden" name="regels[{{ $i }}][omschrijving]" value="{{ $r['omschrijving'] }}"></td>
+                        <td class="fw-semibold">{{ $r['subgroep_nr'] }}</td><td class="small">{{ $r['omschrijving'] }}</td>
+                        @if($upload->type === 'project')<td class="small">{{ $r['regel']->contract_nr }}</td>@endif
+                        <td><input type="number" min="0" max="9999" class="form-control form-control-sm" name="regels[{{ $i }}][aantal]" value="{{ $r['aantal'] }}"></td>
+                        <td class="small">@if($r['available'])<span class="badge bg-success">{{ $r['available'] }} Available</span> @endif @if($r['in_service'])<span class="badge bg-warning text-dark">{{ $r['in_service'] }} In Service</span> @endif @if($r['in_repair'])<span class="badge bg-danger">{{ $r['in_repair'] }} In Repair</span>@endif</td>
+                    </tr>
                 @empty
-                    <tr><td colspan="7" class="text-center text-muted py-4">Geen machines toegewezen aan dit depot. Ga terug naar de beschikbaarheid.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Geen subgroepen toegewezen aan dit depot. Ga terug naar de beschikbaarheid.</td></tr>
                 @endforelse
                 </tbody></table></div>
+            <div class="card-body small text-muted">Aanvragen gaan per subgroep en aantal; het depot kiest zelf de machines. Het aantal is vooraf ingevuld op wat volgens de lijst bij dit depot beschikbaar is, en is aan te passen.</div>
         </div>
     </div>
     <div class="col-lg-4">
@@ -49,8 +52,8 @@
                 <div class="mb-3"><label class="form-label small fw-semibold">Gewenste verhuurdatum</label><input type="date" name="verhuurdatum" class="form-control form-control-sm" value="{{ old('verhuurdatum', $verhuurdatum) }}"></div>
                 <div class="mb-3"><label class="form-label small fw-semibold">Reactie gewenst vóór</label><input type="date" name="reactie_voor" class="form-control form-control-sm" value="{{ old('reactie_voor') }}"></div>
                 <div class="mb-3"><label class="form-label small fw-semibold">Opmerking voor het depot</label><textarea name="opmerking" rows="4" class="form-control form-control-sm" placeholder="bijv. ophalen met eigen transport op dinsdag">{{ old('opmerking') }}</textarea></div>
-                <button class="btn btn-boels w-100" {{ $aan && count($machines) ? '' : 'disabled' }}><i class="bi bi-send me-1"></i>Aanvraag versturen</button>
-                <div class="form-text mt-2">De mail bevat de inleiding en afsluiting uit Beheer → Mailtemplates, met de aangevinkte machines als tabel. Hij wordt vastgelegd onder "Aanvragen".</div>
+                <button class="btn btn-boels w-100" {{ $aan && count($regels) ? '' : 'disabled' }}><i class="bi bi-send me-1"></i>Aanvraag versturen</button>
+                <div class="form-text mt-2">De mail bevat de inleiding en afsluiting uit Beheer → Mailtemplates, met de aangevinkte subgroepen en aantallen als tabel. Hij wordt vastgelegd onder "Aanvragen".</div>
             </div>
         </div>
     </div>

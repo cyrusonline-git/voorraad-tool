@@ -11,14 +11,13 @@
         <table width="100%" cellpadding="6" cellspacing="0" style="border-collapse:collapse;margin:18px 0;font-size:13px;">
             <thead><tr style="background:#f1f1f1;">
                 <th align="left" style="border-bottom:2px solid #ddd;">Subgroep</th><th align="left" style="border-bottom:2px solid #ddd;">Omschrijving</th>
-                <th align="left" style="border-bottom:2px solid #ddd;">Machinenr</th><th align="left" style="border-bottom:2px solid #ddd;">Merk / model</th>
-                <th align="left" style="border-bottom:2px solid #ddd;">Status</th>
+                <th align="right" style="border-bottom:2px solid #ddd;">Aantal</th><th align="left" style="border-bottom:2px solid #ddd;">Bij jullie volgens de lijst</th>
             </tr></thead>
             <tbody>
-            @foreach($machines as $m)
-            <tr><td style="border-bottom:1px solid #eee;">{{ $m['subgroep_nr'] }}</td><td style="border-bottom:1px solid #eee;">{{ $m['omschrijving'] }}</td>
-                <td style="border-bottom:1px solid #eee;"><strong>{{ $m['uniek_nr'] }}</strong></td><td style="border-bottom:1px solid #eee;">{{ $m['merk_model'] }}</td>
-                <td style="border-bottom:1px solid #eee;">{{ $m['status'] }}</td></tr>
+            @foreach($regels as $r)
+            <tr><td style="border-bottom:1px solid #eee;"><strong>{{ $r['subgroep_nr'] }}</strong></td><td style="border-bottom:1px solid #eee;">{{ $r['omschrijving'] }}</td>
+                <td align="right" style="border-bottom:1px solid #eee;"><strong>{{ $r['aantal'] }}</strong></td>
+                <td style="border-bottom:1px solid #eee;color:#666;">{{ $r['available'] }} Available, {{ $r['in_service'] }} In Service, {{ $r['in_repair'] }} In Repair</td></tr>
             @endforeach
             </tbody>
         </table>

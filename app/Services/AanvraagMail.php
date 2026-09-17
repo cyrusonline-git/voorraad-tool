@@ -18,7 +18,7 @@ class AanvraagMail
     public const PLACEHOLDERS = [
         '{type}' => 'Contract of Project', '{referentie}' => 'contract-/projectnummer', '{omschrijving}' => 'omschrijving (project)',
         '{depot}' => 'aangeschreven depot', '{eigen_depot}' => 'depot van de aanvrager', '{aanvrager}' => 'naam aanvrager',
-        '{verhuurdatum}' => 'gewenste verhuurdatum', '{aantal}' => 'aantal machines', '{reactie_voor}' => 'gewenste reactiedatum',
+        '{verhuurdatum}' => 'gewenste verhuurdatum', '{aantal}' => 'totaal aantal stuks', '{reactie_voor}' => 'gewenste reactiedatum',
         '{opmerking}' => 'opmerking van de aanvrager',
     ];
 
@@ -26,7 +26,7 @@ class AanvraagMail
     {
         return [
             'mail_onderwerp' => 'Aanvraag materieel {type} {referentie} — {eigen_depot}',
-            'mail_intro' => "Beste collega's van {depot},\n\nVoor {type} {referentie} {omschrijving}(verhuur vanaf {verhuurdatum}) zoeken wij nog materieel dat volgens de materieellijst bij jullie beschikbaar is. Mogen wij onderstaande {aantal} machine(s) bij jullie ophalen of laten overbrengen naar {eigen_depot}?",
+            'mail_intro' => "Beste collega's van {depot},\n\nVoor {type} {referentie} {omschrijving}(verhuur vanaf {verhuurdatum}) zoeken wij nog materieel dat volgens de materieellijst bij jullie beschikbaar is. Mogen wij onderstaand materieel ({aantal} stuks) bij jullie ophalen of laten overbrengen naar {eigen_depot}?",
             'mail_afsluiting' => "{opmerking}Graag jullie reactie{reactie_voor}. Alvast bedankt!\n\nMet vriendelijke groet,\n{aanvrager}\n{eigen_depot}",
         ];
     }
@@ -50,9 +50,10 @@ class AanvraagMail
 
     /**
      * Mail opbouwen, versturen en loggen. Geeft de Aanvraag terug (status verzonden/mislukt).
-     * $machines: lijst van Materieel-modellen; $regelInfo: uniek_nr => omschrijving van de orderregel.
+     * $regels: per subgroep [subgroep_nr, omschrijving, aantal, available, in_service, in_repair]
+     * (aanvragen gaan per subgroep en aantal — nooit per machinenummer).
      */
-    public function verstuur(Upload $upload, Depot $depot, ?Depot $eigenDepot, array $machines, array $regelInfo, string $opmerking, ?string $reactieVoor, ?string $verhuurdatum): Aanvraag
+    public function verstuur(Upload $upload, Depot $depot, ?Depot $eigenDepot, array $regels, string $opmerking, ?string $reactieVoor, ?string $verhuurdatum): Aanvraag
     {
         $gebruiker = core_gebruiker() ?? [];
         $aan = $depot->mailadres();
@@ -66,18 +67,13 @@ class AanvraagMail
             'type' => $upload->typeNaam(), 'referentie' => $upload->referentie, 'omschrijving' => $upload->type === 'project' ? ($upload->regels()->value('project_omschrijving') ?? '') : '',
             'depot' => $depot->naam, 'eigen_depot' => $eigenDepot?->naam ?? ($gebruiker['name'] ?? ''), 'aanvrager' => $gebruiker['name'] ?? 'Binnendienst',
             'verhuurdatum' => $verhuurdatum ? \Carbon\Carbon::parse($verhuurdatum)->format('d-m-Y') : 'n.t.b.',
-            'aantal' => count($machines), 'reactie_voor' => $reactieVoor ? \Carbon\Carbon::parse($reactieVoor)->format('d-m-Y') : '', 'opmerking' => trim($opmerking),
+            'aantal' => array_sum(array_column($regels, 'aantal')), 'reactie_voor' => $reactieVoor ? \Carbon\Carbon::parse($reactieVoor)->format('d-m-Y') : '', 'opmerking' => trim($opmerking),
         ];
         $onderwerp = self::vul(self::template('mail_onderwerp'), $waarden);
         $intro = self::vul(self::template('mail_intro'), $waarden);
         $afsluiting = self::vul(self::template('mail_afsluiting'), $waarden);
 
-        $lijst = array_map(fn ($m) => [
-            'uniek_nr' => $m->uniek_nr, 'subgroep_nr' => $m->subgroep_nr,
-            'omschrijving' => $regelInfo[$m->uniek_nr] ?? ($m->omschrijving ?: $m->subgroep_naam),
-            'merk_model' => trim(($m->extra['merk'] ?? '').' '.($m->extra['model'] ?? '')),
-            'status' => $m->status_raw, 'laatste_uithuur' => $m->laatste_uithuur?->format('d-m-Y'),
-        ], $machines);
+        $lijst = array_values($regels);
 
         $aanvraag = Aanvraag::create([
             'upload_id' => $upload->id, 'upload_type' => $upload->type, 'referentie' => $upload->referentie, 'omschrijving' => $waarden['omschrijving'],
@@ -85,7 +81,7 @@ class AanvraagMail
             'eigen_depot_nummer' => $eigenDepot?->depot_nummer, 'eigen_depot_naam' => $eigenDepot?->naam,
             'aan_email' => $aan, 'reply_to' => $replyTo, 'cc' => implode(', ', $cc),
             'onderwerp' => $onderwerp, 'body' => $intro."\n\n[machinelijst]\n\n".$afsluiting,
-            'machines' => $lijst, 'aantal_machines' => count($lijst), 'opmerking' => trim($opmerking) ?: null,
+            'machines' => $lijst, 'aantal_machines' => array_sum(array_column($lijst, 'aantal')), 'opmerking' => trim($opmerking) ?: null,
             'reactie_voor' => $reactieVoor ?: null, 'verhuurdatum' => $verhuurdatum ?: null,
             'status' => 'verzonden', 'user_id' => session('app_user_id'),
             'aanvrager_naam' => $gebruiker['name'] ?? null, 'aanvrager_email' => $aanvragerMail,
@@ -97,7 +93,7 @@ class AanvraagMail
             return $aanvraag;
         }
         try {
-            Mail::send('mail.aanvraag', ['intro' => $intro, 'afsluiting' => $afsluiting, 'machines' => $lijst, 'waarden' => $waarden, 'aanvraag' => $aanvraag],
+            Mail::send('mail.aanvraag', ['intro' => $intro, 'afsluiting' => $afsluiting, 'regels' => $lijst, 'waarden' => $waarden, 'aanvraag' => $aanvraag],
                 function ($m) use ($aan, $cc, $replyTo, $onderwerp, $waarden) {
                     $m->to($aan)->subject($onderwerp);
                     $m->from(config('mail.from.address'), setting('mail_van_naam', 'Boels Industrial — Voorraad tool').' namens '.$waarden['eigen_depot']);

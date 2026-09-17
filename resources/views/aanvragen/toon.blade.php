@@ -25,9 +25,15 @@
         </div></div>
     </div>
     <div class="col-lg-8">
-        <div class="card mb-3"><div class="card-header">Machines <span class="badge bg-secondary">{{ $aanvraag->aantal_machines }}</span></div>
-            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Subgroep</th><th>Omschrijving</th><th>Machinenr</th><th>Merk / model</th><th>Status</th></tr></thead><tbody>
-            @foreach($aanvraag->machines ?? [] as $m)<tr><td>{{ $m['subgroep_nr'] }}</td><td class="small">{{ $m['omschrijving'] }}</td><td><strong>{{ $m['uniek_nr'] }}</strong></td><td class="small text-muted">{{ $m['merk_model'] }}</td><td class="small">{{ $m['status'] }}</td></tr>@endforeach
+        <div class="card mb-3"><div class="card-header">Aangevraagd <span class="badge bg-secondary">{{ $aanvraag->aantal_machines }} stuks</span></div>
+            <div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Subgroep</th><th>Omschrijving</th><th class="text-end">Aantal</th><th>Bij het depot volgens de lijst</th></tr></thead><tbody>
+            @foreach($aanvraag->machines ?? [] as $r)
+                @if(isset($r['uniek_nr']))
+                <tr><td>{{ $r['subgroep_nr'] }}</td><td class="small">{{ $r['omschrijving'] }}</td><td class="text-end">1</td><td class="small text-muted">machine {{ $r['uniek_nr'] }} ({{ $r['status'] ?? '' }})</td></tr>
+                @else
+                <tr><td class="fw-semibold">{{ $r['subgroep_nr'] }}</td><td class="small">{{ $r['omschrijving'] }}</td><td class="text-end fw-bold">{{ $r['aantal'] }}</td><td class="small text-muted">{{ $r['available'] ?? 0 }} Available, {{ $r['in_service'] ?? 0 }} In Service, {{ $r['in_repair'] ?? 0 }} In Repair</td></tr>
+                @endif
+            @endforeach
             </tbody></table></div></div>
         <div class="card"><div class="card-header">Tekst van de mail</div><div class="card-body small" style="white-space:pre-wrap">{{ $aanvraag->body }}</div></div>
     </div>
