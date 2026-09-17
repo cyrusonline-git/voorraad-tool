@@ -1,6 +1,22 @@
 # DirectAdmin zet standaard een index.html in public_html; Laravel moet vóórgaan
 DirectoryIndex index.php
 
+# Grote Excel-uploads (materieellijst 50.000+ regels): ruimere PHP-limieten (LiteSpeed/Apache)
+<IfModule LiteSpeed>
+php_value memory_limit 512M
+php_value max_execution_time 600
+php_value max_input_time 600
+php_value upload_max_filesize 64M
+php_value post_max_size 64M
+</IfModule>
+<IfModule mod_php.c>
+php_value memory_limit 512M
+php_value max_execution_time 600
+php_value max_input_time 600
+php_value upload_max_filesize 64M
+php_value post_max_size 64M
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
