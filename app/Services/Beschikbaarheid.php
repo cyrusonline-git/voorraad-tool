@@ -18,24 +18,17 @@ class Beschikbaarheid
 {
     public const TIERS = ['available', 'in_service', 'in_repair'];
 
-    /** Welke regels van deze upload moeten gezocht worden? */
+    /**
+     * Welke regels moeten gezocht worden? Alleen status "Niet toegekend".
+     * Toegekend/Allocated staat al vast, Inhuur/On hire is al geregeld,
+     * Uit-verhuur en Goederen in zijn niet nodig (Wim, 17-09-2026).
+     */
     public static function teZoeken(Upload $upload): Collection
     {
-        $ookToegekendZonderNr = (bool) (int) setting('zoek_toegekend_zonder_nummer', 1);
-
         return OrderRegel::where('upload_id', $upload->id)
+            ->where('status_code', 'not_allocated')
             ->whereNotNull('subgroep_nr')
-            ->orderBy('regel_nr')->get()
-            ->filter(function (OrderRegel $r) use ($ookToegekendZonderNr) {
-                if ($r->status_code === 'not_allocated') {
-                    return true;
-                }
-                if ($ookToegekendZonderNr && $r->status_code === 'allocated') {
-                    return $r->artikel_nr === null || $r->artikel_nr === $r->subgroep_nr;
-                }
-
-                return false;
-            })->values();
+            ->orderBy('regel_nr')->get();
     }
 
     /**

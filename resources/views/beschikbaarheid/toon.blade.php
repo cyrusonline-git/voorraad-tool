@@ -33,7 +33,7 @@
 </div>
 
 @if($aantalRegels === 0)
-    <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Geen regels om te zoeken: alle regels zijn al toegekend, in huur of niet nodig.{{ $zoekToegekend ? '' : ' (Regels "Toegekend" zonder uniek nummer worden niet gezocht — instelling bij Beheer.)' }}</div>
+    <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Geen regels om te zoeken: er zijn geen regels met status "Niet toegekend". Toegekend staat al vast, in huur is al geregeld, uit-verhuur en goederen in zijn niet nodig.</div>
 @endif
 
 <ul class="nav nav-tabs mb-3" role="tablist">

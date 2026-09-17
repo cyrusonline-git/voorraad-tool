@@ -56,7 +56,6 @@ class BeschikbaarheidController extends Controller
             'totaalGevonden' => $data['totaalGevonden'],
             'aantalRegels' => count($data['regels']),
             'depotNamen' => $data['depotNamen'],
-            'zoekToegekend' => (bool) (int) setting('zoek_toegekend_zonder_nummer', 1),
         ]);
     }
 }

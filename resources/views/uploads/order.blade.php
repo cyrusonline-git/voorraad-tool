@@ -24,7 +24,7 @@
         </div>
         @endif
     @endforeach
-    <div class="col-12 small text-muted"><strong>{{ \App\Services\Beschikbaarheid::teZoeken($upload)->count() }}</strong> regel(s) moeten in de materieellijst gezocht worden (status "Niet toegekend"{{ (int) setting('zoek_toegekend_zonder_nummer', 1) ? ', of "Toegekend" zonder uniek nummer' : '' }}); de andere statussen zijn al geregeld of niet nodig.</div>
+    <div class="col-12 small text-muted"><strong>{{ \App\Services\Beschikbaarheid::teZoeken($upload)->count() }}</strong> regel(s) met status "Niet toegekend" moeten in de materieellijst gezocht worden. Toegekend staat al vast, in huur is al geregeld, uit-verhuur en goederen in zijn niet nodig.</div>
 </div>
 <div class="card">
     <div class="card-header d-flex flex-wrap align-items-center gap-2">
@@ -49,7 +49,7 @@
                     @if($upload->type === 'project')<td>{{ $r->contract_nr }}</td><td>{{ $r->project_nr }}<div class="small text-muted">{{ $r->project_omschrijving }}</div></td>@endif
                     <td class="small text-muted">{{ $r->extra['type'] ?? '' }}</td>
                     <td class="fw-semibold">{{ $r->subgroep_nr }}</td>
-                    <td>{{ $r->artikel_nr }}@if($r->artikel_nr && $r->subgroep_nr && $r->artikel_nr === $r->subgroep_nr) <span class="badge bg-light text-dark border" title="Alleen subgroep, nog geen uniek nummer">geen uniek nr</span>@endif</td>
+                    <td>{{ $r->artikel_nr }}</td>
                     <td>{{ $r->omschrijving }}</td>
                     <td><span class="badge {{ ['not_allocated' => 'bg-boels', 'allocated' => 'bg-success', 'on_hire' => 'bg-secondary', 'off_hire' => 'bg-light text-dark border', 'goods_in' => 'bg-light text-dark border', 'onbekend' => 'bg-danger'][$r->status_code] ?? 'bg-secondary' }}">{{ $codes[$r->status_code] ?? $r->status_code }}</span></td>
                     <td class="small text-muted">{{ $r->status_raw }}</td>
