@@ -81,7 +81,12 @@ class Voorraadstand
         ];
     }
 
-    /** Aankomende orders voor dit depot (Niet toegekend, ingangsdatum binnen de horizon) versus voorraad. */
+    /**
+     * Aankomende orders voor dit depot (Niet toegekend, ingangsdatum binnen de
+     * horizon): alleen subgroepen waar minder Available staat dan nodig én waar
+     * machines In Service / In Repair staan — die moet de werkplaats nakijken.
+     * Wat de binnendienst/expeditie nog toewijst is hier niet relevant.
+     */
     public function aankomendeOrders(string $depotNr, int $horizonDagen): array
     {
         $tot = now()->addDays($horizonDagen)->toDateString();
@@ -95,23 +100,30 @@ class Voorraadstand
             return [];
         }
         $subs = $regels->pluck('subgroep_nr')->unique()->all();
-        $voorraad = Materieel::actueel()->where('depot_nummer', $depotNr)->whereIn('subgroep_nr', $subs)
-            ->selectRaw('subgroep_nr, status_code, count(*) as n')->groupBy('subgroep_nr', 'status_code')->get()
-            ->groupBy('subgroep_nr')->map(fn ($g) => $g->pluck('n', 'status_code')->all());
+        $machines = Materieel::actueel()->where('depot_nummer', $depotNr)->whereIn('subgroep_nr', $subs)
+            ->whereIn('status_code', ['available', 'in_service', 'in_repair'])->get()->groupBy('subgroep_nr');
         $uit = [];
         foreach ($regels->groupBy('subgroep_nr') as $sub => $rs) {
+            $g = $machines[$sub] ?? collect();
             $nodig = (int) ceil($rs->sum('aantal'));
-            $v = $voorraad[$sub] ?? [];
-            $available = (int) ($v['available'] ?? 0);
+            $available = $g->where('status_code', 'available')->count();
+            $tekort = max(0, $nodig - $available);
+            $kandidaten = $g->whereIn('status_code', ['in_service', 'in_repair'])
+                ->sortBy(fn ($m) => ($m->status_code === 'in_service' ? '0' : '1').($m->laatste_uithuur?->format('Y-m-d') ?? '9999'))->values();
+            if ($tekort === 0 || $kandidaten->isEmpty()) {
+                continue; // genoeg Available, of niets om na te kijken
+            }
             $uit[] = [
                 'subgroep_nr' => $sub, 'omschrijving' => $rs->first()->omschrijving, 'nodig' => $nodig,
-                'available' => $available, 'in_service' => (int) ($v['in_service'] ?? 0), 'in_repair' => (int) ($v['in_repair'] ?? 0),
-                'tekort' => max(0, $nodig - $available),
+                'available' => $available, 'in_service' => $g->where('status_code', 'in_service')->count(), 'in_repair' => $g->where('status_code', 'in_repair')->count(),
+                'tekort' => $tekort,
+                'na_te_kijken' => $kandidaten->take($tekort),
+                'rest' => max(0, $tekort - $kandidaten->count()),
                 'eerste_datum' => $rs->min('verhuurdatum'),
                 'orders' => $rs->map(fn ($r) => ($r->contract_nr ?: '?').($r->project_nr ? ' / '.$r->project_nr : ''))->unique()->values()->all(),
             ];
         }
-        usort($uit, fn ($a, $b) => [$b['tekort'] > 0, $a['eerste_datum']] <=> [$a['tekort'] > 0, $b['eerste_datum']]);
+        usort($uit, fn ($a, $b) => $a['eerste_datum'] <=> $b['eerste_datum']);
 
         return $uit;
     }

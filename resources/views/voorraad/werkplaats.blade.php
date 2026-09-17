@@ -43,18 +43,20 @@
         </tbody></table></div>
 </div>
 <div class="card">
-    <div class="card-header">Aankomende orders voor dit depot (Niet toegekend, ingangsdatum binnen {{ $horizon }} dagen) <span class="badge bg-secondary">{{ count($orders) }}</span></div>
+    <div class="card-header">Nakijken voor aankomende orders (ingangsdatum binnen {{ $horizon }} dagen) <span class="badge bg-secondary">{{ count($orders) }}</span></div>
     <div class="table-responsive"><table class="table table-sm align-middle mb-0">
-        <thead><tr><th>Ingang</th><th>Subgroep</th><th>Omschrijving</th><th>Orders</th><th class="text-end">Nodig</th><th class="text-end">Available</th><th class="text-end">Service / Repair</th><th class="text-end">Tekort</th></tr></thead>
+        <thead><tr><th>Ingang</th><th>Subgroep</th><th>Omschrijving</th><th>Orders</th><th class="text-end">Nodig</th><th class="text-end">Available</th><th class="text-end">Tekort</th><th>Nakijken (In Service eerst)</th></tr></thead>
         <tbody>
         @forelse($orders as $o)
-            <tr class="{{ $o['tekort'] > 0 ? 'table-warning' : '' }}"><td class="small">{{ $o['eerste_datum']?->format('d-m-Y') }}</td><td class="fw-semibold">{{ $o['subgroep_nr'] }}</td><td class="small">{{ $o['omschrijving'] }}</td><td class="small">{{ implode(', ', $o['orders']) }}</td>
-                <td class="text-end">{{ $o['nodig'] }}</td><td class="text-end">{{ $o['available'] }}</td><td class="text-end small">{{ $o['in_service'] }} / {{ $o['in_repair'] }}</td><td class="text-end fw-bold {{ $o['tekort'] ? 'text-danger' : 'text-success' }}">{{ $o['tekort'] }}</td></tr>
+            <tr class="{{ $o['rest'] > 0 ? 'table-danger' : 'table-warning' }}"><td class="small">{{ $o['eerste_datum']?->format('d-m-Y') }}</td><td class="fw-semibold">{{ $o['subgroep_nr'] }}</td><td class="small">{{ $o['omschrijving'] }}</td><td class="small">{{ implode(', ', $o['orders']) }}</td>
+                <td class="text-end">{{ $o['nodig'] }}</td><td class="text-end">{{ $o['available'] }}</td><td class="text-end fw-bold text-danger">{{ $o['tekort'] }}</td>
+                <td class="small">@foreach($o['na_te_kijken'] as $m)<span class="badge {{ $kleur[$m->status_code] }} me-1" title="{{ $m->status_raw }} · {{ trim(($m->extra['merk'] ?? '').' '.($m->extra['model'] ?? '')) }}">{{ $m->uniek_nr }}</span>@endforeach
+                    @if($o['rest'] > 0)<span class="text-danger">nog {{ $o['rest'] }} te kort, ook na nakijken</span>@endif</td></tr>
         @empty
-            <tr><td colspan="8" class="text-center text-muted py-3">Geen aankomende orders met status "Niet toegekend" voor dit depot in de geüploade contracten/projecten.</td></tr>
+            <tr><td colspan="8" class="text-center text-muted py-3">Niets na te kijken voor aankomende orders: er is genoeg Available, of er staat niets In Service / In Repair van de gevraagde subgroepen.</td></tr>
         @endforelse
         </tbody></table></div>
-    <div class="card-body small text-muted">Het depot van een order wordt bepaald uit de vestiging (contract, kolom P) of de eerste drie cijfers van het contractnummer. De horizon stel je in bij Beheer → Instellingen.</div>
+    <div class="card-body small text-muted">Alleen subgroepen uit orders met status "Niet toegekend" waar minder Available staat dan nodig én waar machines In Service / In Repair staan. Het depot van een order volgt uit de vestiging (contract) of de eerste drie cijfers van het contractnummer. Horizon: Beheer → Instellingen.</div>
 </div>
 @endif
 @endsection
