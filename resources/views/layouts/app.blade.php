@@ -53,7 +53,8 @@
             <ul class="navbar-nav me-auto">
                 <li class="nav-item"><a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a></li>
                 @if(in_array($rol, ['binnendienst', 'werkplaats', 'manager', 'fleet', 'admin']))
-                <li class="nav-item"><a class="nav-link {{ request()->routeIs('uploads.*') ? 'active' : '' }}" href="{{ route('uploads.index') }}"><i class="bi bi-upload me-1"></i>Uploads</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('uploads.*', 'beschikbaarheid', 'aanvragen.nieuw') ? 'active' : '' }}" href="{{ route('uploads.index') }}"><i class="bi bi-upload me-1"></i>Uploads</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('aanvragen.index', 'aanvragen.toon') ? 'active' : '' }}" href="{{ route('aanvragen.index') }}"><i class="bi bi-envelope-paper me-1"></i>Aanvragen</a></li>
                 @endif
                 @if($rol === 'admin')
                 <li class="nav-item dropdown">
@@ -62,7 +63,7 @@
                         <li><a class="dropdown-item" href="{{ route('admin.depots') }}"><i class="bi bi-geo-alt me-2"></i>Depots &amp; areas (uit CORE)</a></li>
                         <li><a class="dropdown-item" href="{{ route('admin.kolommen') }}"><i class="bi bi-table me-2"></i>Kolomindeling &amp; statussen</a></li>
                         <li><a class="dropdown-item" href="{{ route('admin.instellingen') }}"><i class="bi bi-sliders me-2"></i>Instellingen</a></li>
-                        <li><a class="dropdown-item disabled" href="#"><i class="bi bi-envelope me-2"></i>Mailtemplates <span class="fase-badge">fase 3</span></a></li>
+                        <li><a class="dropdown-item" href="{{ route('admin.mail') }}"><i class="bi bi-envelope me-2"></i>Mailtemplates &amp; testmail</a></li>
                     </ul>
                 </li>
                 @endif

@@ -25,6 +25,8 @@ class CoreSso
     public function user(bool $force = false): ?array
     {
         if ($this->fakeUser()) {
+            $this->request->session()->put('core_user', $this->fakeUser());
+
             return $this->fakeUser();
         }
         $user = $this->relay('/api/me', 'core_user', $force);

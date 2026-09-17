@@ -49,7 +49,7 @@
             @if($d['eigen'])<span class="badge bg-boels">eigen depot</span>@endif
             <span class="badge bg-secondary">{{ count($d['machines']) }} machines</span>
             @unless($d['eigen'])
-            <span class="ms-auto"><a href="#" class="btn btn-sm btn-outline-boels disabled" title="Fase 3: aanvraagmail naar dit depot"><i class="bi bi-envelope me-1"></i>Aanvraag mailen <span class="fase-badge">fase 3</span></a></span>
+            <span class="ms-auto"><a href="{{ route('aanvragen.nieuw', [$upload, 'depot_nr' => $nr, 'eigen' => $eigen]) }}" class="btn btn-sm btn-boels"><i class="bi bi-envelope me-1"></i>Aanvraag mailen</a></span>
             @endunless
         </div>
         <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">

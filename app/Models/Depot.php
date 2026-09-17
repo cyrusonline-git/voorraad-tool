@@ -13,10 +13,10 @@ class Depot extends Model
 
     protected $casts = ['actief' => 'boolean', 'gesynct_op' => 'datetime'];
 
-    /** Mailadres voor aanvragen: eigen overschrijving gaat vóór het CORE-adres. */
+    /** Mailadres voor aanvragen: het CORE-adres; het lokale veld alleen als CORE er geen heeft. */
     public function mailadres(): ?string
     {
-        return $this->email ?: $this->email_core;
+        return $this->email_core ?: $this->email;
     }
 
     public function scopeActief($q)

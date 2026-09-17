@@ -14,10 +14,10 @@
 <form method="post" action="{{ route('admin.depots.opslaan') }}">
 @csrf
 <div class="card">
-    <div class="card-header">Per depot: depotnummer zoals in de materieel-Excel (kolom J) en het mailadres voor aanvragen</div>
+    <div class="card-header">Per depot: depotnummer zoals in de materieel-Excel (kolom J). Aanvraagmails gaan naar het CORE-adres; het mailadres hier is alleen een terugval als CORE er geen heeft</div>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Depot</th><th>Area</th><th>Business unit</th><th>Plaats</th><th style="width:140px">Depotnummer</th><th style="width:280px">Aanvraag-mailadres</th><th>Status</th></tr></thead>
+            <thead><tr><th>Depot</th><th>Area</th><th>Business unit</th><th>Plaats</th><th style="width:140px">Depotnummer</th><th style="width:280px">Mailadres (terugval)</th><th>Status</th></tr></thead>
             <tbody>
             @forelse($depots as $d)
                 <tr class="{{ $d->actief ? '' : 'text-muted' }}">

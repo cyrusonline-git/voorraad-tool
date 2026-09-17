@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\DepotController;
 use App\Http\Controllers\Admin\InstellingenController;
 use App\Http\Controllers\Admin\KolomController;
+use App\Http\Controllers\Admin\MailController;
+use App\Http\Controllers\AanvraagController;
 use App\Http\Controllers\BeschikbaarheidController;
 use App\Http\Controllers\UploadController;
 use App\Http\Controllers\DashboardController;
@@ -24,6 +26,12 @@ Route::middleware('core')->group(function () {
     Route::delete('/uploads/{upload}', [UploadController::class, 'verwijder'])->name('uploads.verwijder');
     Route::get('/uploads/{upload}/beschikbaarheid', [BeschikbaarheidController::class, 'toon'])->name('beschikbaarheid');
 
+    // Aanvraagmails aan depots
+    Route::get('/aanvragen', [AanvraagController::class, 'index'])->name('aanvragen.index');
+    Route::get('/aanvragen/{aanvraag}', [AanvraagController::class, 'toon'])->name('aanvragen.toon');
+    Route::get('/uploads/{upload}/aanvraag', [AanvraagController::class, 'nieuw'])->name('aanvragen.nieuw');
+    Route::post('/uploads/{upload}/aanvraag', [AanvraagController::class, 'verstuur'])->name('aanvragen.verstuur');
+
     // Beheer (alleen actieve rol admin)
     Route::prefix('beheer')->name('admin.')->middleware('rol:admin')->group(function () {
         Route::get('/instellingen', [InstellingenController::class, 'index'])->name('instellingen');
@@ -34,6 +42,10 @@ Route::middleware('core')->group(function () {
         Route::post('/depots/koppel', [DepotController::class, 'koppel'])->name('depots.koppel');
         Route::get('/kolommen', [KolomController::class, 'index'])->name('kolommen');
         Route::post('/kolommen', [KolomController::class, 'opslaan'])->name('kolommen.opslaan');
+        Route::get('/mail', [MailController::class, 'index'])->name('mail');
+        Route::post('/mail', [MailController::class, 'opslaan'])->name('mail.opslaan');
+        Route::post('/mail/herstel', [MailController::class, 'herstel'])->name('mail.herstel');
+        Route::post('/mail/test', [MailController::class, 'test'])->name('mail.test');
     });
 });
 
