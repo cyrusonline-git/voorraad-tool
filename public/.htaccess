@@ -1,3 +1,6 @@
+# DirectAdmin zet standaard een index.html in public_html; Laravel moet vóórgaan
+DirectoryIndex index.php
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
