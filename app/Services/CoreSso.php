@@ -56,8 +56,8 @@ class CoreSso
                 'areas' => [[
                     'name' => 'West', 'country' => 'NL',
                     'depots' => [
-                        ['name' => 'Rotterdam', 'email' => 'rotterdam@example.test', 'city' => 'Rotterdam'],
-                        ['name' => 'Chemelot', 'email' => 'chemelot@example.test', 'city' => 'Geleen'],
+                        ['name' => 'Rotterdam', 'number' => '759', 'email' => 'rotterdam@example.test', 'city' => 'Rotterdam'],
+                        ['name' => 'Chemelot', 'number' => '384, 769', 'email' => 'chemelot@example.test', 'city' => 'Geleen'],
                     ],
                 ]],
             ]];

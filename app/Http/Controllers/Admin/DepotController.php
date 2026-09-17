@@ -32,6 +32,10 @@ class DepotController extends Controller
     public function sync(DepotSync $sync)
     {
         $n = $sync->sync();
+        $actueel = \App\Models\Upload::where('type', 'materieel')->where('actueel', true)->value('id');
+        if ($actueel) {
+            \App\Services\ExcelImport::herschrijfAliassen((int) $actueel);
+        }
 
         return redirect()->route('admin.depots')->with(
             $n === null ? 'fout' : 'ok',
@@ -48,10 +52,11 @@ class DepotController extends Controller
                 continue;
             }
             $r = $rijen[$depot->id];
-            $depot->update([
-                'depot_nummer' => trim((string) ($r['depot_nummer'] ?? '')) ?: null,
-                'email' => trim((string) ($r['email'] ?? '')) ?: null,
-            ]);
+            $velden = ['email' => trim((string) ($r['email'] ?? '')) ?: null];
+            if (! $depot->nummerUitCore()) {
+                $velden['depot_nummer'] = trim((string) ($r['depot_nummer'] ?? '')) ?: null;
+            }
+            $depot->update($velden);
         }
 
         return redirect()->route('admin.depots')->with('ok', 'Depotgegevens opgeslagen.');

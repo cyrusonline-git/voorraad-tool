@@ -33,7 +33,9 @@ class DepotSync
                         continue;
                     }
                     $gezien[] = $naam;
-                    Depot::updateOrCreate(['naam' => $naam], [
+                    // Depotnummers uit CORE zijn leidend: eerste = hoofdnummer, rest = aliassen
+                    $nummers = array_values(array_filter(array_map('trim', explode(',', (string) ($d['number'] ?? '')))));
+                    $velden = [
                         'area' => $area['name'] ?? null,
                         'business_unit' => $bu['name'] ?? null,
                         'land' => $area['country'] ?? null,
@@ -42,7 +44,13 @@ class DepotSync
                         'actief' => true,
                         'volgorde' => $volgorde++,
                         'gesynct_op' => now(),
-                    ]);
+                        'nummer_core' => $nummers ? implode(', ', $nummers) : null,
+                    ];
+                    if ($nummers) {
+                        $velden['depot_nummer'] = $nummers[0];
+                        $velden['extra_nummers'] = array_slice($nummers, 1) ?: null;
+                    }
+                    Depot::updateOrCreate(['naam' => $naam], $velden);
                 }
             }
         }

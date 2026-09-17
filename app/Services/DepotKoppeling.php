@@ -36,7 +36,7 @@ class DepotKoppeling
             if (in_array($nr, $bezet, true)) {
                 continue;
             }
-            $kandidaten = $depots->filter(fn ($d) => $d->depot_nummer === null && self::naamMatch($d->naam, (string) $info['naam']));
+            $kandidaten = $depots->filter(fn ($d) => $d->depot_nummer === null && ! $d->nummerUitCore() && self::naamMatch($d->naam, (string) $info['naam']));
             if ($kandidaten->count() === 1) {
                 $kandidaten->first()->update(['depot_nummer' => (string) $nr]);
                 $bezet[] = (string) $nr;
@@ -45,7 +45,7 @@ class DepotKoppeling
         }
         $ongekoppeld = array_diff(array_keys($gezien), $bezet);
         if ($ongekoppeld) {
-            $meldingen[] = 'Depotnummers zonder CORE-depot: '.implode(', ', array_map(fn ($n) => "$n ({$gezien[$n]['naam']})", $ongekoppeld)).' — koppel ze bij Beheer → Depots.';
+            $meldingen[] = 'Depotnummers zonder CORE-depot: '.implode(', ', array_map(fn ($n) => "$n ({$gezien[$n]['naam']})", $ongekoppeld)).' — vul het nummer in bij Boels CORE → Beheer → Infrastructuur (of als terugval bij Beheer → Depots).';
         }
 
         return $gekoppeld;

@@ -113,6 +113,7 @@ class ExcelImport
             // Alleen de laatste materieellijst is actueel; oude regels opruimen
             Upload::where('type', 'materieel')->where('id', '!=', $upload->id)->update(['actueel' => false]);
             Materieel::whereIn('upload_id', Upload::where('type', 'materieel')->where('actueel', false)->select('id'))->delete();
+            self::herschrijfAliassen($upload->id);
             app(DepotKoppeling::class)->koppelAutomatisch($meldingen);
         }
 
@@ -341,6 +342,14 @@ class ExcelImport
         }
 
         return [$aantal, $overgeslagen];
+    }
+
+    /** Depot-aliassen (bv. 769 *Industrial Chemelot) herschrijven naar het hoofdnummer (384) van het CORE-depot. */
+    public static function herschrijfAliassen(int $uploadId): void
+    {
+        foreach (\App\Models\Depot::aliasKaart() as $alias => $hoofd) {
+            Materieel::where('upload_id', $uploadId)->where('depot_nummer', $alias)->update(['depot_nummer' => $hoofd]);
+        }
     }
 
     // ---- hulpfuncties -------------------------------------------------
