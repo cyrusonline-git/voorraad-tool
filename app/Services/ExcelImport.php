@@ -27,12 +27,12 @@ class ExcelImport
             'status' => 'M', 'laatste_uithuur' => 'N',
         ],
         'contract' => [
-            'subgroep' => 'B', 'artikel_nr' => 'C', 'omschrijving' => 'D', 'status' => 'G',
+            'subgroep' => 'B', 'artikel_nr' => 'C', 'omschrijving' => 'D', 'type' => 'F', 'status' => 'G',
             'afleverdatum' => 'H', 'verhuurdatum' => 'I', 'aantal' => 'J', 'vestiging' => 'P',
         ],
         'project' => [
-            'contract_nr' => 'A', 'project_nr' => 'B', 'project_omschrijving' => 'C', 'subgroep' => 'F',
-            'omschrijving' => 'G', 'aantal' => 'J', 'verhuurdatum' => 'R', 'status' => 'Z',
+            'contract_nr' => 'A', 'project_nr' => 'B', 'project_omschrijving' => 'C', 'type' => 'E', 'subgroep' => 'F',
+            'omschrijving' => 'G', 'aantal' => 'J', 'artikel_nr' => 'K', 'verhuurdatum' => 'R', 'status' => 'Z',
         ],
     ];
 
@@ -41,7 +41,7 @@ class ExcelImport
         'depot' => 'Depot (nummer + locatie)', 'area' => 'Area', 'status' => 'Status', 'laatste_uithuur' => 'Laatste uit-huur datum',
         'artikel_nr' => 'Artikelnummer', 'afleverdatum' => 'Afleverdatum', 'verhuurdatum' => 'Verhuur-/startdatum',
         'aantal' => 'Aantal', 'vestiging' => 'Vestiging (depotnummer)', 'contract_nr' => 'Contractnummer',
-        'project_nr' => 'Projectnummer', 'project_omschrijving' => 'Projectomschrijving',
+        'project_nr' => 'Projectnummer', 'project_omschrijving' => 'Projectomschrijving', 'type' => 'Regeltype (Hire / Sub Group booking)',
     ];
 
     /** Statusvertaling: genormaliseerde tekst => code. */
@@ -57,7 +57,8 @@ class ExcelImport
     public const STATUS_ORDER = [
         'niet toegekend' => 'not_allocated', 'not allocated' => 'not_allocated', 'unallocated' => 'not_allocated',
         'toegekend' => 'allocated', 'allocated' => 'allocated',
-        'inhuur' => 'on_hire', 'in huur' => 'on_hire', 'on hire' => 'on_hire',
+        'inhuur' => 'on_hire', 'in huur' => 'on_hire', 'on hire' => 'on_hire', 'on-hire' => 'on_hire',
+        'on-hire/delivered' => 'on_hire', 'on hire/delivered' => 'on_hire', 'delivered' => 'on_hire',
         'uit-verhuur' => 'off_hire', 'uit verhuur' => 'off_hire', 'off hire' => 'off_hire', 'off-hire' => 'off_hire',
         'goederen in' => 'goods_in', 'goods in' => 'goods_in',
     ];
@@ -211,7 +212,7 @@ class ExcelImport
                 'project_omschrijving' => $bron === 'project' ? ($this->tekst($ws, $k['project_omschrijving'], $r) ?: null) : null,
                 'regel_nr' => $regelNr,
                 'subgroep_nr' => $subNr,
-                'artikel_nr' => $bron === 'contract' ? ($this->tekst($ws, $k['artikel_nr'], $r) ?: null) : null,
+                'artikel_nr' => $this->tekst($ws, $k['artikel_nr'] ?? '', $r) ?: null,
                 'omschrijving' => $omschrijving ?: ($subNaam ?: null),
                 'status_raw' => $statusRaw ?: null,
                 'status_code' => $code,
@@ -219,7 +220,7 @@ class ExcelImport
                 'verhuurdatum' => $this->datum($ws, $k['verhuurdatum'], $r),
                 'aantal' => $this->getal($ws, $k['aantal'], $r, 1),
                 'vestiging_nr' => $vestiging ?: null,
-                'extra' => null,
+                'extra' => json_encode(['type' => $this->tekst($ws, $k['type'] ?? '', $r) ?: null]),
             ];
         }
         if ($rijen) {

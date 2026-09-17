@@ -41,14 +41,15 @@
     </div>
     <div class="table-responsive">
         <table class="table table-sm table-hover align-middle mb-0">
-            <thead><tr><th>#</th>@if($upload->type === 'project')<th>Contract</th><th>Project</th>@endif<th>Subgroep</th>@if($upload->type === 'contract')<th>Artikelnr</th>@endif<th>Omschrijving</th><th>Status</th><th>Status (bestand)</th>@if($upload->type === 'contract')<th>Aflevering</th>@endif<th>Verhuur vanaf</th><th class="text-end">Aantal</th></tr></thead>
+            <thead><tr><th>#</th>@if($upload->type === 'project')<th>Contract</th><th>Project</th>@endif<th>Type</th><th>Subgroep</th><th>Artikelnr</th><th>Omschrijving</th><th>Status</th><th>Status (bestand)</th>@if($upload->type === 'contract')<th>Aflevering</th>@endif<th>Verhuur vanaf</th><th class="text-end">Aantal</th></tr></thead>
             <tbody>
             @forelse($regels as $r)
                 <tr class="{{ $r->status_code === 'not_allocated' ? 'table-warning' : '' }}">
                     <td class="text-muted small">{{ $r->regel_nr }}</td>
                     @if($upload->type === 'project')<td>{{ $r->contract_nr }}</td><td>{{ $r->project_nr }}<div class="small text-muted">{{ $r->project_omschrijving }}</div></td>@endif
+                    <td class="small text-muted">{{ $r->extra['type'] ?? '' }}</td>
                     <td class="fw-semibold">{{ $r->subgroep_nr }}</td>
-                    @if($upload->type === 'contract')<td>{{ $r->artikel_nr }}</td>@endif
+                    <td>{{ $r->artikel_nr }}@if($r->artikel_nr && $r->subgroep_nr && $r->artikel_nr === $r->subgroep_nr) <span class="badge bg-light text-dark border" title="Alleen subgroep, nog geen uniek nummer">geen uniek nr</span>@endif</td>
                     <td>{{ $r->omschrijving }}</td>
                     <td><span class="badge {{ ['not_allocated' => 'bg-boels', 'allocated' => 'bg-success', 'on_hire' => 'bg-secondary', 'off_hire' => 'bg-light text-dark border', 'goods_in' => 'bg-light text-dark border', 'onbekend' => 'bg-danger'][$r->status_code] ?? 'bg-secondary' }}">{{ $codes[$r->status_code] ?? $r->status_code }}</span></td>
                     <td class="small text-muted">{{ $r->status_raw }}</td>
