@@ -66,6 +66,7 @@ class AanvraagController extends Controller
             'depot_nr' => ['required', 'string'],
             'eigen' => ['nullable', 'string'],
             'regels' => ['required', 'array'],
+            'regels.*.gekozen' => ['nullable'],
             'regels.*.subgroep_nr' => ['required', 'string'],
             'regels.*.omschrijving' => ['nullable', 'string', 'max:200'],
             'regels.*.aantal' => ['nullable', 'integer', 'min:0', 'max:9999'],
