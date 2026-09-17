@@ -78,9 +78,10 @@ class Beschikbaarheid
                     break;
                 }
                 $tierPool = $pool->where('status_code', $tier);
-                // Eigen depot eerst, daarna depots met de meeste voorraad van deze subgroep
+                // Eigen depot eerst, daarna depots met de meeste voorraad van deze subgroep.
+                // Let op: groupBy maakt van "759" het getal 759 — daarom altijd als tekst vergelijken.
                 $volgorde = $tierPool->groupBy('depot_nummer')
-                    ->sortBy(fn ($groep, $nr) => ($nr === $eigenDepotNr ? '0' : '1').str_pad((string) (100000 - $groep->count()), 6, '0', STR_PAD_LEFT));
+                    ->sortBy(fn ($groep, $nr) => ((string) $nr === (string) $eigenDepotNr ? '0' : '1').str_pad((string) (100000 - $groep->count()), 6, '0', STR_PAD_LEFT));
                 foreach ($volgorde as $depotNr => $groep) {
                     foreach ($groep as $m) {
                         if ($rest <= 0) {
@@ -103,7 +104,7 @@ class Beschikbaarheid
                 'available' => $g->where('status_code', 'available')->count(),
                 'in_service' => $g->where('status_code', 'in_service')->count(),
                 'in_repair' => $g->where('status_code', 'in_repair')->count(),
-            ])->sortByDesc(fn ($v, $nr) => ($nr === $eigenDepotNr ? 1000000 : 0) + $v['available'] * 1000 + $v['in_service'] * 10 + $v['in_repair']);
+            ])->sortByDesc(fn ($v, $nr) => ((string) $nr === (string) $eigenDepotNr ? 1000000 : 0) + $v['available'] * 1000 + $v['in_service'] * 10 + $v['in_repair']);
 
             $uitRegels[] = [
                 'regel' => $regel,
@@ -120,7 +121,7 @@ class Beschikbaarheid
                 $perDepot[$nr]['depot_nummer'] = $nr;
                 $perDepot[$nr]['depot_naam'] = $depotNamen[$nr] ?? $m->depot_naam ?? $nr;
                 $perDepot[$nr]['depot_id'] = $depotIds[$nr] ?? null;
-                $perDepot[$nr]['eigen'] = $nr === $eigenDepotNr;
+                $perDepot[$nr]['eigen'] = (string) $nr === (string) $eigenDepotNr;
                 $perDepot[$nr]['machines'][] = ['regel' => $regel, 'machine' => $m];
             }
         }

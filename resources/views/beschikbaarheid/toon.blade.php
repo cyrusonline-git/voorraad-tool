@@ -85,13 +85,13 @@
                 <td class="text-end {{ $r['tekort'] > 0 ? 'text-danger fw-bold' : 'text-success fw-bold' }}">{{ $r['gevonden'] }}@if($r['tekort'] > 0) <small>(tekort {{ $r['tekort'] }})</small>@endif</td>
                 <td class="small">
                     @foreach(collect($r['toewijzing'])->groupBy('depot_nummer') as $nr => $ms)
-                        <div><span class="badge {{ $nr === $eigen ? 'bg-boels' : 'bg-light text-dark border' }}">{{ $nr }} {{ $depotNamen[$nr] ?? $ms->first()->depot_naam }}</span>
+                        <div><span class="badge {{ (string) $nr === (string) $eigen ? 'bg-boels' : 'bg-light text-dark border' }}">{{ $nr }} {{ $depotNamen[$nr] ?? $ms->first()->depot_naam }}</span>
                         @foreach($ms as $m)<span class="badge {{ $kleur[$m->status_code] ?? 'bg-secondary' }}" title="{{ $m->status_raw }}">{{ $m->uniek_nr }}</span>@endforeach</div>
                     @endforeach
                 </td>
                 <td class="small">
                     @forelse($r['voorraad'] as $nr => $v)
-                        <span class="me-2 text-nowrap {{ $nr === $eigen ? 'fw-bold text-boels' : '' }}">{{ $nr }}: {{ $v['available'] }}/{{ $v['in_service'] }}/{{ $v['in_repair'] }}</span>
+                        <span class="me-2 text-nowrap {{ (string) $nr === (string) $eigen ? 'fw-bold text-boels' : '' }}">{{ $nr }}: {{ $v['available'] }}/{{ $v['in_service'] }}/{{ $v['in_repair'] }}</span>
                     @empty
                         <span class="text-danger">niets inzetbaar</span>
                     @endforelse
