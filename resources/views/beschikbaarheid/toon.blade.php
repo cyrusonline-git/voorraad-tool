@@ -2,6 +2,7 @@
 @section('titel', 'Beschikbaarheid '.$upload->referentie)
 @php($statusNaam = \App\Models\Materieel::STATUSSEN)
 @php($kleur = ['available' => 'bg-success', 'in_service' => 'bg-warning text-dark', 'in_repair' => 'bg-danger'])
+@push('head')<style>.tabel-depot { table-layout: fixed; } .tabel-depot td, .tabel-depot th { overflow: hidden; text-overflow: ellipsis; } .tabel-depot td:nth-child(3) { white-space: normal; }</style>@endpush
 @section('inhoud')
 <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-3">
     <div class="flex-grow-1">
@@ -54,8 +55,9 @@
             <span class="ms-auto small text-muted">eigen depot: bij de expeditie aanvragen op subgroep</span>
             @endunless
         </div>
-        <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
-            <thead><tr><th style="width:90px">Aantal</th><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract(en)</th>@endif<th>Waarvan</th></tr></thead>
+        <div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0 tabel-depot">
+            <colgroup><col style="width:90px"><col style="width:110px"><col>@if($upload->type === 'project')<col style="width:190px">@endif<col style="width:330px"></colgroup>
+            <thead><tr><th>Aantal</th><th>Subgroep</th><th>Omschrijving</th>@if($upload->type === 'project')<th>Contract(en)</th>@endif<th>Waarvan</th></tr></thead>
             <tbody>
             @foreach($d['regels'] as $rij)
                 <tr><td><span class="badge bg-boels fs-6 px-3">{{ $rij['aantal'] }}×</span></td>

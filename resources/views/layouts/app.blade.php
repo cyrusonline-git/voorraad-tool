@@ -15,7 +15,7 @@
         .navbar-boels .navbar-brand, .navbar-boels .nav-link, .navbar-boels .dropdown-toggle { color: #fff !important; }
         .navbar-boels .nav-link:hover { color: #ffe3cf !important; }
         .navbar-boels .nav-link.active { font-weight: 600; text-decoration: underline; text-underline-offset: 6px; }
-        .brand-logo { height: 38px; width: auto; border-radius: 6px; margin-right: 12px; background: #fff; }
+        .brand-logo { height: 44px; width: auto; border-radius: 6px; margin-right: 12px; background: #fff; padding: 5px 7px; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
         .rol-badge { background: rgba(255,255,255,.22); color: #fff; border-radius: 12px; padding: 3px 10px; font-size: .8rem; }
         .btn-boels { background: var(--boels-orange); border-color: var(--boels-orange); color: #fff; }
         .btn-boels:hover { background: var(--boels-orange-dark); border-color: var(--boels-orange-dark); color: #fff; }
