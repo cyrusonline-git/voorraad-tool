@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Aanvraag;
 use App\Models\Depot;
 use App\Models\Materieel;
 use App\Models\OrderRegel;
@@ -30,6 +31,74 @@ class Beschikbaarheid
             ->where('status_code', 'not_allocated')
             ->whereNotNull('subgroep_nr')
             ->orderBy('regel_nr')->get();
+    }
+
+    /**
+     * "Order compleet?": per subgroep totaal nodig, wat het eigen depot levert,
+     * wat al bij andere depots is aangevraagd (verstuurde aanvraagmails) en wat
+     * nog open staat. Antwoorden van depots worden niet automatisch verwerkt.
+     */
+    public function orderStatus(Upload $upload, array $berekend, ?string $eigenDepotNr): array
+    {
+        $depotNamen = $berekend['depotNamen'] ?? [];
+        $subs = [];
+        foreach ($berekend['regels'] as $r) {
+            $sub = (string) $r['regel']->subgroep_nr;
+            $subs[$sub] ??= ['subgroep_nr' => $sub, 'omschrijving' => $r['regel']->omschrijving, 'nodig' => 0,
+                'eigen' => 0, 'eigen_status' => ['available' => 0, 'in_service' => 0, 'in_repair' => 0],
+                'advies' => [], 'aangevraagd' => [], 'geregeld' => 0, 'open' => 0];
+            $subs[$sub]['nodig'] += $r['nodig'];
+            foreach ($r['toewijzing'] as $m) {
+                $nr = (string) $m->depot_nummer;
+                if ($nr === (string) $eigenDepotNr) {
+                    $subs[$sub]['eigen']++;
+                    $subs[$sub]['eigen_status'][$m->status_code] = ($subs[$sub]['eigen_status'][$m->status_code] ?? 0) + 1;
+                } else {
+                    $subs[$sub]['advies'][$nr] ??= ['nr' => $nr, 'naam' => $depotNamen[$nr] ?? $m->depot_naam ?? $nr, 'aantal' => 0];
+                    $subs[$sub]['advies'][$nr]['aantal']++;
+                }
+            }
+        }
+        // Verstuurde aanvragen voor dit contract/project
+        $aanvragen = Aanvraag::where('upload_id', $upload->id)->where('status', 'verzonden')->orderBy('id')->get();
+        $perDepotAangevraagd = [];
+        foreach ($aanvragen as $a) {
+            foreach ((array) $a->machines as $rij) {
+                $sub = (string) ($rij['subgroep_nr'] ?? '');
+                $aantal = (int) ($rij['aantal'] ?? 1);
+                if ($sub === '' || ! isset($subs[$sub])) {
+                    continue;
+                }
+                $nr = (string) $a->depot_nummer;
+                $subs[$sub]['aangevraagd'][$nr] ??= ['nr' => $nr, 'naam' => $a->depot_naam, 'aantal' => 0, 'aanvraag_id' => $a->id, 'datum' => $a->created_at];
+                $subs[$sub]['aangevraagd'][$nr]['aantal'] += $aantal;
+                $perDepotAangevraagd[$nr] ??= ['aantal' => 0, 'laatste' => $a->created_at, 'aanvraag_id' => $a->id];
+                $perDepotAangevraagd[$nr]['aantal'] += $aantal;
+                $perDepotAangevraagd[$nr]['laatste'] = $a->created_at;
+                $perDepotAangevraagd[$nr]['aanvraag_id'] = $a->id;
+            }
+        }
+        foreach ($subs as &$x) {
+            $x['aangevraagd_totaal'] = array_sum(array_column($x['aangevraagd'], 'aantal'));
+            $x['geregeld'] = $x['eigen'] + $x['aangevraagd_totaal'];
+            $x['open'] = max(0, $x['nodig'] - $x['geregeld']);
+            $x['compleet'] = $x['open'] === 0;
+            // Advies alleen voor depots waar nog niet (voldoende) is aangevraagd
+            $x['advies'] = array_values(array_filter($x['advies'], fn ($a) => ($x['aangevraagd'][$a['nr']]['aantal'] ?? 0) < $a['aantal']));
+            $x['aangevraagd'] = array_values($x['aangevraagd']);
+        }
+        unset($x);
+        uasort($subs, fn ($a, $b) => [$a['compleet'], $a['subgroep_nr']] <=> [$b['compleet'], $b['subgroep_nr']]);
+
+        return [
+            'subgroepen' => array_values($subs),
+            'aantal' => count($subs),
+            'compleet' => count(array_filter($subs, fn ($x) => $x['compleet'])),
+            'nodig' => array_sum(array_column($subs, 'nodig')),
+            'geregeld' => array_sum(array_column($subs, 'geregeld')),
+            'open' => array_sum(array_column($subs, 'open')),
+            'perDepotAangevraagd' => $perDepotAangevraagd,
+        ];
     }
 
     /**

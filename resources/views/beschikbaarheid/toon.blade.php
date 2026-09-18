@@ -2,7 +2,7 @@
 @section('titel', 'Beschikbaarheid '.$upload->referentie)
 @php($statusNaam = \App\Models\Materieel::STATUSSEN)
 @php($kleur = ['available' => 'bg-success', 'in_service' => 'bg-warning text-dark', 'in_repair' => 'bg-danger'])
-@push('head')<style>.tabel-depot { table-layout: fixed; } .tabel-depot td, .tabel-depot th { overflow: hidden; text-overflow: ellipsis; } .tabel-depot td:nth-child(3) { white-space: normal; }</style>@endpush
+@push('head')<style>.tabel-depot { table-layout: fixed; } .tabel-depot td, .tabel-depot th { overflow: hidden; text-overflow: ellipsis; } .tabel-depot td:nth-child(3) { white-space: normal; } .tabel-order { table-layout: fixed; } .tabel-order td { white-space: normal; }</style>@endpush
 @section('inhoud')
 <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-3">
     <div class="flex-grow-1">
@@ -27,14 +27,39 @@
 </div></form>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3"><div class="card kpi-tile"><div class="kpi-body"><div class="kpi-icon"><i class="bi bi-list-ol"></i></div><div><div class="kpi-value">{{ $aantalRegels }}</div><div class="kpi-label">regels te zoeken</div></div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card kpi-tile"><div class="kpi-body"><div class="kpi-icon" style="background:#198754"><i class="bi bi-check2-circle"></i></div><div><div class="kpi-value">{{ $totaalGevonden }} <span class="fs-6 text-muted">/ {{ $totaalNodig }}</span></div><div class="kpi-label">machines gevonden / nodig</div></div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card kpi-tile"><div class="kpi-body"><div class="kpi-icon" style="background:{{ $tekorten ? '#dc3545' : '#6c757d' }}"><i class="bi bi-exclamation-triangle"></i></div><div><div class="kpi-value {{ $tekorten ? 'text-danger' : '' }}">{{ $tekorten }}</div><div class="kpi-label">regels met tekort</div></div></div></div></div>
-    <div class="col-6 col-md-3"><div class="card kpi-tile"><div class="kpi-body"><div class="kpi-icon" style="background:#0d6efd"><i class="bi bi-geo-alt"></i></div><div><div class="kpi-value">{{ count($perDepot) }}</div><div class="kpi-label">depots om te halen{{ $eigenNaam ? ' · eigen: '.$eigenNaam : '' }}</div></div></div></div></div>
+    <div class="col-6 col-md"><div class="card kpi-tile h-100" style="border-left:5px solid {{ $order['open'] === 0 && $order['aantal'] > 0 ? '#198754' : '#dc3545' }}"><div class="kpi-body"><div class="kpi-icon" style="background:{{ $order['open'] === 0 && $order['aantal'] > 0 ? '#198754' : '#dc3545' }}"><i class="bi bi-{{ $order['open'] === 0 ? 'check2-all' : 'clipboard-x' }}"></i></div><div><div class="kpi-value {{ $order['open'] === 0 ? 'text-success' : 'text-danger' }}">{{ $order['open'] === 0 ? 'Compleet' : $order['open'].' open' }}</div><div class="kpi-label">{{ $order['geregeld'] }} van {{ $order['nodig'] }} stuks geregeld · {{ $order['compleet'] }}/{{ $order['aantal'] }} subgroepen</div></div></div></div></div>
+    <div class="col-6 col-md"><div class="card kpi-tile h-100"><div class="kpi-body"><div class="kpi-icon"><i class="bi bi-list-ol"></i></div><div><div class="kpi-value">{{ $aantalRegels }}</div><div class="kpi-label">regels te zoeken</div></div></div></div></div>
+    <div class="col-6 col-md"><div class="card kpi-tile h-100"><div class="kpi-body"><div class="kpi-icon" style="background:#198754"><i class="bi bi-check2-circle"></i></div><div><div class="kpi-value">{{ $totaalGevonden }} <span class="fs-6 text-muted">/ {{ $totaalNodig }}</span></div><div class="kpi-label">machines gevonden / nodig</div></div></div></div></div>
+    <div class="col-6 col-md"><div class="card kpi-tile h-100"><div class="kpi-body"><div class="kpi-icon" style="background:{{ $tekorten ? '#dc3545' : '#6c757d' }}"><i class="bi bi-exclamation-triangle"></i></div><div><div class="kpi-value {{ $tekorten ? 'text-danger' : '' }}">{{ $tekorten }}</div><div class="kpi-label">regels met tekort</div></div></div></div></div>
+    <div class="col-6 col-md"><div class="card kpi-tile h-100"><div class="kpi-body"><div class="kpi-icon" style="background:#0d6efd"><i class="bi bi-geo-alt"></i></div><div><div class="kpi-value">{{ count($perDepot) }}</div><div class="kpi-label">depots om te halen{{ $eigenNaam ? ' · eigen: '.$eigenNaam : '' }}</div></div></div></div></div>
 </div>
 
 @if($aantalRegels === 0)
     <div class="alert alert-info"><i class="bi bi-info-circle me-2"></i>Geen regels om te zoeken: er zijn geen regels met status "Niet toegekend". Toegekend staat al vast, in huur is al geregeld, uit-verhuur en goederen in zijn niet nodig.</div>
+@endif
+
+@if($order['aantal'] > 0)
+<div class="card mb-4">
+    <div class="card-header d-flex flex-wrap align-items-center gap-2"><i class="bi bi-clipboard-check me-1 text-boels"></i>Order compleet? — per subgroep
+        <span class="ms-auto small text-muted">Aangevraagd = verstuurde aanvraagmails voor dit {{ strtolower($upload->typeNaam()) }} (zie <a href="{{ route('aanvragen.index', ['q' => $upload->referentie]) }}">Aanvragen</a>); antwoorden van depots worden niet automatisch verwerkt.</span></div>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0 tabel-order">
+        <colgroup><col style="width:100px"><col><col style="width:80px"><col style="width:200px"><col style="width:260px"><col style="width:120px"><col style="width:300px"></colgroup>
+        <thead><tr><th>Subgroep</th><th>Omschrijving</th><th class="text-end">Nodig</th><th>Eigen depot{{ $eigenNaam ? ' ('.$eigenNaam.')' : '' }}</th><th>Aangevraagd bij</th><th class="text-end">Nog te regelen</th><th>Advies voor de rest</th></tr></thead>
+        <tbody>
+        @foreach($order['subgroepen'] as $x)
+            <tr class="{{ $x['compleet'] ? 'table-success' : ($x['advies'] ? 'table-warning' : 'table-danger') }}">
+                <td class="fw-semibold">{{ $x['subgroep_nr'] }}</td><td class="small">{{ $x['omschrijving'] }}</td>
+                <td class="text-end fw-bold">{{ $x['nodig'] }}</td>
+                <td>@if($x['eigen'])<strong>{{ $x['eigen'] }}</strong> <span class="small text-muted">({{ $x['eigen_status']['available'] }} av / {{ $x['eigen_status']['in_service'] }} serv / {{ $x['eigen_status']['in_repair'] }} rep)</span>@else<span class="text-muted">0</span>@endif</td>
+                <td>@forelse($x['aangevraagd'] as $a)<a href="{{ route('aanvragen.toon', $a['aanvraag_id']) }}" class="badge bg-success text-decoration-none me-1" title="aanvraag #{{ $a['aanvraag_id'] }} · {{ $a['datum']->format('d-m-Y H:i') }}">{{ $a['naam'] }} {{ $a['aantal'] }}×</a>@empty<span class="text-muted">—</span>@endforelse</td>
+                <td class="text-end">@if($x['compleet'])<span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>compleet</span>@else<span class="fw-bold text-danger fs-6">{{ $x['open'] }}</span>@endif</td>
+                <td class="small">@if(!$x['compleet'])@forelse($x['advies'] as $a)<a href="{{ route('aanvragen.nieuw', [$upload, 'depot_nr' => $a['nr'], 'eigen' => $eigen]) }}" class="badge bg-light text-dark border text-decoration-none me-1" title="Aanvraag mailen aan {{ $a['naam'] }}"><i class="bi bi-envelope me-1"></i>{{ $a['naam'] }} {{ $a['aantal'] }}×</a>@empty<span class="text-danger">niets meer beschikbaar volgens de lijst</span>@endforelse @endif</td>
+            </tr>
+        @endforeach
+        </tbody>
+        <tfoot><tr class="fw-bold"><td colspan="2">Totaal</td><td class="text-end">{{ $order['nodig'] }}</td><td>{{ array_sum(array_column($order['subgroepen'], 'eigen')) }}</td><td>{{ array_sum(array_column($order['subgroepen'], 'aangevraagd_totaal')) }} aangevraagd</td><td class="text-end {{ $order['open'] ? 'text-danger' : 'text-success' }}">{{ $order['open'] ?: 'compleet' }}</td><td></td></tr></tfoot>
+    </table></div>
+</div>
 @endif
 
 <ul class="nav nav-tabs mb-3" role="tablist">
@@ -50,7 +75,9 @@
             @if($d['eigen'])<span class="badge bg-boels">eigen depot</span>@endif
             <span class="badge bg-secondary">{{ $d['aantal'] }} stuks · {{ count($d['regels']) }} subgroepen</span>
             @unless($d['eigen'])
-            <span class="ms-auto"><a href="{{ route('aanvragen.nieuw', [$upload, 'depot_nr' => $nr, 'eigen' => $eigen]) }}" class="btn btn-sm btn-boels"><i class="bi bi-envelope me-1"></i>Aanvraag mailen</a></span>
+            <span class="ms-auto d-flex align-items-center gap-2">
+                @if(isset($order['perDepotAangevraagd'][$nr]))<a href="{{ route('aanvragen.toon', $order['perDepotAangevraagd'][$nr]['aanvraag_id']) }}" class="badge bg-success text-decoration-none"><i class="bi bi-check-lg me-1"></i>aangevraagd {{ $order['perDepotAangevraagd'][$nr]['laatste']->format('d-m H:i') }} · {{ $order['perDepotAangevraagd'][$nr]['aantal'] }} stuks</a>@endif
+                <a href="{{ route('aanvragen.nieuw', [$upload, 'depot_nr' => $nr, 'eigen' => $eigen]) }}" class="btn btn-sm {{ isset($order['perDepotAangevraagd'][$nr]) ? 'btn-outline-boels' : 'btn-boels' }}"><i class="bi bi-envelope me-1"></i>{{ isset($order['perDepotAangevraagd'][$nr]) ? 'Nogmaals aanvragen' : 'Aanvraag mailen' }}</a></span>
             @else
             <span class="ms-auto small text-muted">eigen depot: bij de expeditie aanvragen op subgroep</span>
             @endunless

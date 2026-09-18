@@ -27,6 +27,7 @@ class BeschikbaarheidController extends Controller
         $eigen = $eigen !== '' ? $eigen : null;
 
         $data = $service->bereken($upload, $eigen);
+        $order = $service->orderStatus($upload, $data, $eigen);
 
         // Filters op de regels (tekst, alleen tekorten)
         $q = mb_strtolower(trim((string) $request->input('q')));
@@ -56,6 +57,7 @@ class BeschikbaarheidController extends Controller
             'totaalGevonden' => $data['totaalGevonden'],
             'aantalRegels' => count($data['regels']),
             'depotNamen' => $data['depotNamen'],
+            'order' => $order,
         ]);
     }
 }
