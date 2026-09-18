@@ -86,6 +86,9 @@ class Beschikbaarheid
             // Advies alleen voor depots waar nog niet (voldoende) is aangevraagd
             $x['advies'] = array_values(array_filter($x['advies'], fn ($a) => ($x['aangevraagd'][$a['nr']]['aantal'] ?? 0) < $a['aantal']));
             $x['aangevraagd'] = array_values($x['aangevraagd']);
+            // Wat volgens de materieellijst NERGENS meer te halen is, ook niet met de adviezen
+            $x['advies_totaal'] = array_sum(array_column($x['advies'], 'aantal'));
+            $x['tekort'] = max(0, $x['open'] - $x['advies_totaal']);
         }
         unset($x);
         uasort($subs, fn ($a, $b) => [$a['compleet'], $a['subgroep_nr']] <=> [$b['compleet'], $b['subgroep_nr']]);
@@ -97,6 +100,8 @@ class Beschikbaarheid
             'nodig' => array_sum(array_column($subs, 'nodig')),
             'geregeld' => array_sum(array_column($subs, 'geregeld')),
             'open' => array_sum(array_column($subs, 'open')),
+            'tekort' => array_sum(array_column($subs, 'tekort')),
+            'tekort_subgroepen' => count(array_filter($subs, fn ($x) => $x['tekort'] > 0)),
             'perDepotAangevraagd' => $perDepotAangevraagd,
         ];
     }
