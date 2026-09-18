@@ -15,7 +15,7 @@
         .navbar-boels .navbar-brand, .navbar-boels .nav-link, .navbar-boels .dropdown-toggle { color: #fff !important; }
         .navbar-boels .nav-link:hover { color: #ffe3cf !important; }
         .navbar-boels .nav-link.active { font-weight: 600; text-decoration: underline; text-underline-offset: 6px; }
-        .brand-b { display: inline-flex; width: 34px; height: 34px; border-radius: 8px; background: #fff; color: var(--boels-orange); font-weight: 800; font-size: 20px; align-items: center; justify-content: center; margin-right: 10px; }
+        .brand-logo { height: 38px; width: auto; border-radius: 6px; margin-right: 12px; background: #fff; }
         .rol-badge { background: rgba(255,255,255,.22); color: #fff; border-radius: 12px; padding: 3px 10px; font-size: .8rem; }
         .btn-boels { background: var(--boels-orange); border-color: var(--boels-orange); color: #fff; }
         .btn-boels:hover { background: var(--boels-orange-dark); border-color: var(--boels-orange-dark); color: #fff; }
@@ -45,7 +45,7 @@
 <nav class="navbar navbar-expand-lg navbar-boels shadow-sm">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}">
-            <span class="brand-b">B</span>{{ setting('app_titel', 'Voorraad tool') }}
+            <img src="{{ asset('images/boels-industrial.png') }}" alt="Boels Industrial" class="brand-logo">{{ setting('app_titel', 'Voorraad tool') }}
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="nav">

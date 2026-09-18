@@ -4,7 +4,7 @@
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:20px 0;"><tr><td align="center">
 <table width="680" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:10px;overflow:hidden;max-width:100%;">
     <tr><td style="background:#FF6600;color:#fff;padding:16px 24px;font-size:18px;font-weight:bold;">
-        <span style="display:inline-block;background:#fff;color:#FF6600;border-radius:6px;padding:2px 9px;margin-right:10px;font-weight:800;">B</span>Boels Industrial — aanvraag materieel
+        <img src="{{ rtrim(config('app.url'), '/') }}/images/boels-industrial.png" alt="Boels Industrial" style="height:36px;vertical-align:middle;border-radius:6px;margin-right:12px;">Aanvraag materieel
     </td></tr>
     <tr><td style="padding:24px;">
         <div style="white-space:pre-wrap;line-height:1.5;">{{ $intro }}</div>
