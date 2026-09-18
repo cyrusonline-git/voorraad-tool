@@ -15,7 +15,7 @@
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="type" id="type_{{ $t }}" value="{{ $t }}" {{ old('type', 'contract') === $t ? 'checked' : '' }}>
                         <label class="form-check-label" for="type_{{ $t }}">{{ $naam }}
-                            <small class="text-muted d-block">{{ ['materieel' => 'Alle machines met depot en status — vervangt de vorige lijst', 'contract' => 'Eén contract/reservering (kolom G = status)', 'project' => 'Meerdere contracten onder één project (kolom Z = status)'][$t] }}</small>
+                            <small class="text-muted d-block">{{ ['materieel' => 'Alle machines met depot en status — vervangt de vorige lijst', 'reserveringen' => 'Alle aankomende quotes per depot (contract, depot, subgroep, startdatum) — vervangt de vorige lijst', 'contract' => 'Eén contract/reservering (kolom G = status)', 'project' => 'Meerdere contracten onder één project (kolom Z = status)'][$t] }}</small>
                         </label>
                     </div>
                     @endforeach
@@ -45,6 +45,22 @@
                     </div>
                 @else
                     <p class="text-muted mb-0">Nog geen materieellijst ingelezen. Zonder deze lijst kan de app niet zoeken waar materieel staat.</p>
+                @endif
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-calendar-check me-2 text-boels"></i>Actuele reserveringen (quotes)</div>
+            <div class="card-body">
+                @if($reserveringen)
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div><div class="fs-4 fw-bold">{{ number_format($reserveringen->aantal_rijen, 0, ',', '.') }}</div><div class="small text-muted">regels · {{ $reserveringen->referentie }}</div></div>
+                        <div><div class="fs-4 fw-bold text-danger">{{ number_format($reserveringenBinnen, 0, ',', '.') }}</div><div class="small text-muted">starten binnen {{ $horizon }} dagen</div></div>
+                        <div class="flex-grow-1 small"><strong>{{ $reserveringen->bestandsnaam }}</strong><br><span class="text-muted">ingelezen {{ $reserveringen->created_at->format('d-m-Y H:i') }} door {{ $reserveringen->gebruiker_naam ?: '—' }}</span>
+                            @if($reserveringen->meldingen)<div class="text-warning mt-1"><i class="bi bi-exclamation-triangle me-1"></i>{{ implode(' ', $reserveringen->meldingen) }}</div>@endif</div>
+                        <a href="{{ route('uploads.toon', $reserveringen) }}" class="btn btn-outline-boels btn-sm"><i class="bi bi-search me-1"></i>Bekijken</a>
+                    </div>
+                @else
+                    <p class="text-muted mb-0">Nog geen reserveringenlijst ingelezen. Zonder deze lijst houdt de beschikbaarheid geen rekening met aankomende quotes op de depots.</p>
                 @endif
             </div>
         </div>

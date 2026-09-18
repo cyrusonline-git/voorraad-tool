@@ -16,6 +16,7 @@ class InstellingenController extends Controller
             'app_titel' => ['Naam in de kop', 'Voorraad tool', 'Wordt bovenin elke pagina getoond.'],
             'mail_van_naam' => ['Afzendernaam aanvraagmails', 'Boels Industrial — Voorraad tool', 'Naam waarmee aanvraagmails naar depots worden verstuurd.'],
             'mail_cc' => ['CC bij aanvraagmails', '', 'Optioneel: één of meer adressen, gescheiden door komma.'],
+            'reservering_horizon_dagen' => ['Horizon reserveringen (dagen)', '21', 'Beschikbaarheid: reserveringen (quotes) die binnen dit aantal dagen starten, houden materieel op het depot bezet.'],
             'orders_horizon_dagen' => ['Horizon aankomende orders (dagen)', '14', 'Werkplaats: orders met ingangsdatum binnen dit aantal dagen worden meegenomen.'],
         ];
     }

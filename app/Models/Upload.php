@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Upload extends Model
 {
-    public const TYPES = ['materieel' => 'Materieellijst', 'contract' => 'Contract', 'project' => 'Project'];
+    public const TYPES = ['materieel' => 'Materieellijst', 'reserveringen' => 'Reserveringen (quotes)', 'contract' => 'Contract', 'project' => 'Project'];
 
     protected $fillable = [
         'type', 'bestandsnaam', 'pad', 'referentie', 'omschrijving', 'depot_nummer', 'aantal_rijen',

@@ -23,6 +23,9 @@ class ExcelImport
             'serienummer' => 'H', 'depot' => 'J', 'area' => 'K', 'status' => 'M', 'laatste_uithuur' => 'N',
             'ontvangen_op_depot' => 'O', 'vorig_depot' => 'P',
         ],
+        'reserveringen' => [
+            'contract_nr' => 'A', 'status' => 'B', 'district' => 'C', 'depot' => 'D', 'subgroep' => 'E', 'verhuurdatum' => 'F', 'aantal' => '',
+        ],
         'contract' => [
             'subgroep' => 'B', 'artikel_nr' => 'C', 'omschrijving' => 'D', 'type' => 'F', 'status' => 'G',
             'afleverdatum' => 'H', 'verhuurdatum' => 'I', 'aantal' => 'J', 'vestiging' => 'P',
@@ -41,6 +44,7 @@ class ExcelImport
         'artikel_nr' => 'Artikelnummer', 'afleverdatum' => 'Afleverdatum', 'verhuurdatum' => 'Verhuur-/startdatum',
         'aantal' => 'Aantal', 'vestiging' => 'Vestiging (depotnummer)', 'contract_nr' => 'Contractnummer',
         'project_nr' => 'Projectnummer', 'project_omschrijving' => 'Projectomschrijving', 'type' => 'Regeltype (Hire / Sub Group booking)',
+        'district' => 'District',
     ];
 
     /** Statusvertaling: genormaliseerde tekst => code. */
@@ -95,12 +99,14 @@ class ExcelImport
         try {
             $n = match ($type) {
                 'materieel' => $this->leesMaterieel($pad, $bestandsnaam, $upload, $meldingen),
+                'reserveringen' => $this->leesReserveringen($pad, $bestandsnaam, $upload, $meldingen),
                 'contract' => $this->leesOrder($pad, $bestandsnaam, $upload, 'contract', $meldingen),
                 'project' => $this->leesOrder($pad, $bestandsnaam, $upload, 'project', $meldingen),
             };
         } catch (\Throwable $e) {
             Materieel::where('upload_id', $upload->id)->delete();
             OrderRegel::where('upload_id', $upload->id)->delete();
+            \App\Models\Reservering::where('upload_id', $upload->id)->delete();
             $upload->delete();
             throw $e;
         }
@@ -117,9 +123,95 @@ class ExcelImport
             app(DepotKoppeling::class)->koppelAutomatisch($meldingen);
         }
 
+        if ($type === 'reserveringen') {
+            if ($n[0] === 0) {
+                $upload->delete();
+                throw new \RuntimeException('Geen reserveringsregels gevonden (contractnummer in kolom '.self::kolommen('reserveringen')['contract_nr'].', subgroep in kolom '.self::kolommen('reserveringen')['subgroep'].'). Klopt de kolomindeling?');
+            }
+            Upload::where('type', 'reserveringen')->where('id', '!=', $upload->id)->update(['actueel' => false]);
+            \App\Models\Reservering::whereIn('upload_id', Upload::where('type', 'reserveringen')->where('actueel', false)->select('id'))->delete();
+            foreach (\App\Models\Depot::aliasKaart() as $alias => $hoofd) {
+                \App\Models\Reservering::where('upload_id', $upload->id)->where('depot_nummer', $alias)->update(['depot_nummer' => $hoofd]);
+            }
+        }
+
         $upload->update(['aantal_rijen' => $n[0], 'aantal_overgeslagen' => $n[1], 'meldingen' => array_slice($meldingen, 0, 50)]);
 
         return $upload;
+    }
+
+    /** Reserveringen (quotes): per regel één stuk, tenzij een aantal-kolom is ingesteld. */
+    private function leesReserveringen(string $pad, string $bestandsnaam, Upload $upload, array &$meldingen): array
+    {
+        $k = self::kolommen('reserveringen');
+        $start = self::kopRij('reserveringen') + 1;
+        $buffer = [];
+        $aantal = 0;
+        $overgeslagen = 0;
+        $zonderDepot = 0;
+        $zonderDatum = 0;
+        $contracten = [];
+        $bladnaam = null;
+        DB::beginTransaction();
+        try {
+            foreach ($this->rijen($pad, $bestandsnaam, $bladnaam) as $rijNr => $rij) {
+                if ($rijNr < $start) {
+                    continue;
+                }
+                $contract = $this->tekst($rij, $k['contract_nr']);
+                [$subNr, $subNaam] = self::splitsSubgroep($this->tekst($rij, $k['subgroep']));
+                if ($contract === '' && $subNr === null) {
+                    $overgeslagen++;
+                    continue;
+                }
+                $depotRaw = $this->tekst($rij, $k['depot']);
+                [$depotNr, $depotNaam] = self::splitsDepot($depotRaw);
+                if ($depotNr === null) {
+                    $zonderDepot++;
+                }
+                $datum = $this->datum($rij, $k['verhuurdatum']);
+                if ($datum === null) {
+                    $zonderDatum++;
+                }
+                $contracten[$contract] = true;
+                $buffer[] = [
+                    'upload_id' => $upload->id,
+                    'contract_nr' => $contract ?: null,
+                    'status_raw' => $this->tekst($rij, $k['status']) ?: null,
+                    'district' => $this->tekst($rij, $k['district'] ?? '') ?: null,
+                    'depot_raw' => $depotRaw ?: null,
+                    'depot_nummer' => $depotNr,
+                    'depot_naam' => $depotNaam,
+                    'subgroep_nr' => $subNr,
+                    'omschrijving' => $subNaam,
+                    'startdatum' => $datum,
+                    'aantal' => ($k['aantal'] ?? '') !== '' ? $this->getal($rij, $k['aantal'], 1) : 1,
+                ];
+                $aantal++;
+                if (count($buffer) >= 500) {
+                    DB::table('reserveringen')->insert($buffer);
+                    $buffer = [];
+                }
+            }
+            if ($buffer) {
+                DB::table('reserveringen')->insert($buffer);
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+        $upload->omschrijving = $bladnaam;
+        $upload->referentie = count($contracten).' contracten';
+        $upload->save();
+        if ($zonderDepot > 0) {
+            $meldingen[] = "$zonderDepot regels zonder herkenbaar depotnummer in kolom {$k['depot']}.";
+        }
+        if ($zonderDatum > 0) {
+            $meldingen[] = "$zonderDatum regels zonder startdatum (tellen niet mee bij de horizon).";
+        }
+
+        return [$aantal, $overgeslagen];
     }
 
     // ------------------------------------------------------------------

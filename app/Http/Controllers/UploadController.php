@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Materieel;
 use App\Models\OrderRegel;
+use App\Models\Reservering;
 use App\Models\Upload;
 use App\Services\ExcelImport;
 use Illuminate\Http\Request;
@@ -14,9 +15,15 @@ class UploadController extends Controller
     {
         $materieel = Upload::where('type', 'materieel')->where('actueel', true)->latest()->first();
 
+        $reserveringen = Upload::where('type', 'reserveringen')->where('actueel', true)->latest()->first();
+        $horizon = Reservering::horizonDagen();
+
         return view('uploads.index', [
             'materieel' => $materieel,
             'materieelAantal' => $materieel ? Materieel::where('upload_id', $materieel->id)->count() : 0,
+            'reserveringen' => $reserveringen,
+            'reserveringenBinnen' => $reserveringen ? Reservering::where('upload_id', $reserveringen->id)->binnenHorizon($horizon)->count() : 0,
+            'horizon' => $horizon,
             'uploads' => Upload::whereIn('type', ['contract', 'project'])->latest()->limit(50)->get(),
             'eerdereMaterieel' => Upload::where('type', 'materieel')->latest()->limit(5)->get(),
         ]);
@@ -28,7 +35,7 @@ class UploadController extends Controller
             return back()->with('fout', 'Het bestand is groter dan de server toestaat ('.ini_get('post_max_size').'). Neem contact op met de beheerder.');
         }
         $data = $request->validate([
-            'type' => ['required', 'in:materieel,contract,project'],
+            'type' => ['required', 'in:materieel,reserveringen,contract,project'],
             'bestand' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:65536'],
         ]);
         $bestand = $request->file('bestand');
@@ -71,6 +78,27 @@ class UploadController extends Controller
             ]);
         }
 
+        if ($upload->type === 'reserveringen') {
+            $q = Reservering::where('upload_id', $upload->id);
+            if ($z = trim((string) $request->input('q'))) {
+                $q->where(fn ($w) => $w->where('contract_nr', 'like', "%$z%")->orWhere('subgroep_nr', 'like', "%$z%")
+                    ->orWhere('omschrijving', 'like', "%$z%")->orWhere('depot_naam', 'like', "%$z%")->orWhere('depot_nummer', 'like', "%$z%"));
+            }
+            if ($d = $request->input('depot')) {
+                $q->where('depot_nummer', $d);
+            }
+            if ($request->boolean('horizon')) {
+                $q->binnenHorizon(Reservering::horizonDagen());
+            }
+            $depots = Reservering::where('upload_id', $upload->id)->selectRaw('depot_nummer, max(depot_naam) as depot_naam, count(*) as n, sum(case when startdatum <= ? then 1 else 0 end) as binnen', [now()->addDays(Reservering::horizonDagen())->toDateString()])
+                ->groupBy('depot_nummer')->orderByDesc('n')->get();
+
+            return view('uploads.reserveringen', [
+                'upload' => $upload, 'regels' => $q->orderBy('startdatum')->orderBy('contract_nr')->paginate(100)->withQueryString(),
+                'depots' => $depots, 'horizon' => Reservering::horizonDagen(),
+            ]);
+        }
+
         $q = OrderRegel::where('upload_id', $upload->id);
         if ($z = trim((string) $request->input('q'))) {
             $q->where(fn ($w) => $w->where('subgroep_nr', 'like', "%$z%")->orWhere('artikel_nr', 'like', "%$z%")
@@ -89,10 +117,11 @@ class UploadController extends Controller
 
     public function verwijder(Upload $upload)
     {
-        if ($upload->type === 'materieel' && $upload->actueel) {
-            return back()->with('fout', 'De actuele materieellijst kun je niet verwijderen; upload een nieuwe lijst om hem te vervangen.');
+        if (in_array($upload->type, ['materieel', 'reserveringen']) && $upload->actueel) {
+            return back()->with('fout', 'De actuele '.strtolower($upload->typeNaam()).' kun je niet verwijderen; upload een nieuwe lijst om hem te vervangen.');
         }
         OrderRegel::where('upload_id', $upload->id)->delete();
+        Reservering::where('upload_id', $upload->id)->delete();
         Materieel::where('upload_id', $upload->id)->delete();
         $upload->delete();
 

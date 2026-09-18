@@ -6,6 +6,7 @@ use App\Models\Depot;
 use App\Models\Materieel;
 use App\Models\MinVoorraad;
 use App\Models\OrderRegel;
+use App\Models\Reservering;
 use Illuminate\Support\Collection;
 
 /**
@@ -90,12 +91,22 @@ class Voorraadstand
     public function aankomendeOrders(string $depotNr, int $horizonDagen): array
     {
         $tot = now()->addDays($horizonDagen)->toDateString();
+        // Bron 1: reserveringen (quotes) voor dit depot; bron 2: geüploade contracten/projecten
+        // met regels 'Niet toegekend' (alleen contracten die niet al in de reserveringen zitten).
+        $reserveringen = Reservering::actueel()->where('depot_nummer', $depotNr)->whereNotNull('subgroep_nr')
+            ->whereNotNull('startdatum')->where('startdatum', '<=', $tot)->orderBy('startdatum')->get();
+        $bekend = $reserveringen->pluck('contract_nr')->filter()->unique()->all();
         $regels = OrderRegel::where('status_code', 'not_allocated')
             ->whereNotNull('subgroep_nr')
             ->whereNotNull('verhuurdatum')
             ->where('verhuurdatum', '<=', $tot)
             ->orderBy('verhuurdatum')->get()
-            ->filter(fn ($r) => ($r->vestiging_nr ?: self::depotUitContract($r->contract_nr)) === $depotNr);
+            ->filter(fn ($r) => ($r->vestiging_nr ?: self::depotUitContract($r->contract_nr)) === $depotNr)
+            ->reject(fn ($r) => $r->contract_nr && in_array($r->contract_nr, $bekend, true));
+        $regels = $regels->concat($reserveringen->map(fn ($x) => (object) [
+            'subgroep_nr' => $x->subgroep_nr, 'omschrijving' => $x->omschrijving, 'aantal' => $x->aantal,
+            'verhuurdatum' => $x->startdatum, 'contract_nr' => $x->contract_nr, 'project_nr' => null,
+        ]));
         if ($regels->isEmpty()) {
             return [];
         }

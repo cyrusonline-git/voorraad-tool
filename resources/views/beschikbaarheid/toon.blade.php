@@ -7,7 +7,8 @@
 <div class="page-header d-flex flex-wrap align-items-center gap-3 mb-3">
     <div class="flex-grow-1">
         <h1><i class="bi bi-search me-2 text-boels"></i>Beschikbaarheid — {{ $upload->typeNaam() }} {{ $upload->referentie }}</h1>
-        <p>Gezocht in de materieellijst van {{ $materieel->created_at->format('d-m-Y H:i') }} ({{ number_format($materieel->aantal_rijen, 0, ',', '.') }} machines). Eerst het eigen depot volledig (Available, dan In Service), daarna andere depots (Available, dan In Service); In Repair alleen als laatste. Aanvragen gaan per subgroep en aantal, niet per machinenummer.</p>
+        <p>Gezocht in de materieellijst van {{ $materieel->created_at->format('d-m-Y H:i') }} ({{ number_format($materieel->aantal_rijen, 0, ',', '.') }} machines). Eerst het eigen depot volledig (Available, dan In Service), daarna andere depots (Available, dan In Service); In Repair alleen als laatste. Aanvragen gaan per subgroep en aantal, niet per machinenummer.
+        @if($reserveringenAanwezig)<br><i class="bi bi-calendar-check me-1"></i>Reserveringen (quotes) die binnen <strong>{{ $horizon }} dagen</strong> starten zijn van de voorraad afgetrokken{{ $gereserveerdTotaal > 0 ? ':' : '.' }} @if($gereserveerdTotaal > 0)<strong>{{ $gereserveerdTotaal }}</strong> machine(s) op depots bezet voor andere orders.@endif @else<br><span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Nog geen reserveringenlijst ingelezen: aankomende quotes op de depots tellen nu niet mee.</span>@endif</p>
     </div>
     <a href="{{ route('uploads.toon', $upload) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Regels</a>
 </div>
@@ -102,7 +103,7 @@
 </div>
 <div class="tab-pane fade" id="tabRegels">
     <div class="card"><div class="table-responsive"><table class="table table-sm table-hover align-middle mb-0">
-        <thead><tr><th>#</th>@if($upload->type === 'project')<th>Contract</th>@endif<th>Subgroep</th><th>Omschrijving</th><th>Status</th><th class="text-end">Nodig</th><th class="text-end">Gevonden</th><th>Toegewezen</th><th>Voorraad per depot (Avail / Service / Repair)</th></tr></thead>
+        <thead><tr><th>#</th>@if($upload->type === 'project')<th>Contract</th>@endif<th>Subgroep</th><th>Omschrijving</th><th>Status</th><th class="text-end">Nodig</th><th class="text-end">Gevonden</th><th>Toegewezen</th><th>Voorraad per depot (Avail / Service / Repair, minus gereserveerd)</th></tr></thead>
         <tbody>
         @forelse($regels as $r)
             @php($regel = $r['regel'])
@@ -122,7 +123,7 @@
                 </td>
                 <td class="small">
                     @forelse($r['voorraad'] as $nr => $v)
-                        <span class="me-2 text-nowrap {{ (string) $nr === (string) $eigen ? 'fw-bold text-boels' : '' }}">{{ $nr }}: {{ $v['available'] }}/{{ $v['in_service'] }}/{{ $v['in_repair'] }}</span>
+                        <span class="me-2 text-nowrap {{ (string) $nr === (string) $eigen ? 'fw-bold text-boels' : '' }}">{{ $nr }}: {{ $v['available'] }}/{{ $v['in_service'] }}/{{ $v['in_repair'] }} @if(!empty($r['gereserveerd'][(string) $nr]))<span class="text-danger" title="binnen {{ $horizon }} dagen gereserveerd op dit depot">−{{ $r['gereserveerd'][(string) $nr] }} gereserveerd</span>@endif</span>
                     @empty
                         <span class="text-danger">niets inzetbaar</span>
                     @endforelse

@@ -6,6 +6,7 @@ use App\Models\Aanvraag;
 use App\Models\Depot;
 use App\Models\Materieel;
 use App\Models\OrderRegel;
+use App\Models\Reservering;
 use App\Models\Upload;
 use Illuminate\Support\Collection;
 
@@ -133,6 +134,47 @@ class Beschikbaarheid
         $depotNamen = Depot::whereNotNull('depot_nummer')->pluck('naam', 'depot_nummer')->all();
         $depotIds = Depot::whereNotNull('depot_nummer')->pluck('id', 'depot_nummer')->all();
 
+        // Aankomende reserveringen (quotes) binnen de horizon houden materieel op het
+        // depot bezet: per depot/subgroep zoveel machines uit de pool halen (Available
+        // eerst). Reserveringen van deze order zelf tellen niet mee.
+        $horizon = Reservering::horizonDagen();
+        $eigenContracten = array_values(array_filter(array_unique(array_merge(
+            [(string) $upload->referentie],
+            OrderRegel::where('upload_id', $upload->id)->whereNotNull('contract_nr')->distinct()->pluck('contract_nr')->all()
+        ))));
+        $gereserveerd = [];   // depot => subgroep => aantal
+        if ($subgroepen) {
+            $q = Reservering::actueel()->binnenHorizon($horizon)->whereIn('subgroep_nr', $subgroepen)->whereNotNull('depot_nummer');
+            if ($eigenContracten) {
+                $q->whereNotIn('contract_nr', $eigenContracten);
+            }
+            foreach ($q->selectRaw('depot_nummer, subgroep_nr, sum(aantal) as n')->groupBy('depot_nummer', 'subgroep_nr')->get() as $r) {
+                $gereserveerd[(string) $r->depot_nummer][(string) $r->subgroep_nr] = (int) ceil($r->n);
+            }
+        }
+        $bezet = [];          // uniek_nr => true (door reservering bezet)
+        $bezetTelling = [];   // subgroep => depot => aantal werkelijk bezet
+        if ($gereserveerd) {
+            foreach ($kandidaten as $sub => $lijst) {
+                foreach ($lijst->groupBy('depot_nummer') as $nr => $groep) {
+                    $n = $gereserveerd[(string) $nr][(string) $sub] ?? 0;
+                    if ($n <= 0) {
+                        continue;
+                    }
+                    $volgorde = $groep->sortBy(fn ($m) => array_search($m->status_code, self::TIERS, true));
+                    foreach ($volgorde as $m) {
+                        if ($n <= 0) {
+                            break;
+                        }
+                        $bezet[$m->uniek_nr] = true;
+                        $bezetTelling[(string) $sub][(string) $nr] = ($bezetTelling[(string) $sub][(string) $nr] ?? 0) + 1;
+                        $n--;
+                    }
+                }
+            }
+            $kandidaten = $kandidaten->map(fn ($lijst) => $lijst->reject(fn ($m) => isset($bezet[$m->uniek_nr])));
+        }
+
         $gebruikt = [];
         $uitRegels = [];
         $perDepot = [];
@@ -197,6 +239,8 @@ class Beschikbaarheid
                 'toewijzing' => $toewijzing,
                 'voorraad' => $voorraad,
                 'niet_inzetbaar' => ($nietInzetbaar[$sub] ?? collect())->pluck('n', 'status_code')->all(),
+                'gereserveerd' => $bezetTelling[(string) $sub] ?? [],
+                'gereserveerd_totaal' => array_sum($bezetTelling[(string) $sub] ?? []),
             ];
 
             // Per depot op SUBGROEP-niveau (aanvragen gaan altijd per subgroep, nooit per machinenummer)
@@ -239,6 +283,9 @@ class Beschikbaarheid
             'totaalNodig' => $totaalNodig,
             'totaalGevonden' => $totaalGevonden,
             'depotNamen' => $depotNamen,
+            'horizon' => $horizon,
+            'gereserveerdTotaal' => count($bezet),
+            'reserveringenAanwezig' => Reservering::actueel()->exists(),
         ];
     }
 }

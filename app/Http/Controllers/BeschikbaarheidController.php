@@ -58,6 +58,9 @@ class BeschikbaarheidController extends Controller
             'aantalRegels' => count($data['regels']),
             'depotNamen' => $data['depotNamen'],
             'order' => $order,
+            'horizon' => $data['horizon'],
+            'gereserveerdTotaal' => $data['gereserveerdTotaal'],
+            'reserveringenAanwezig' => $data['reserveringenAanwezig'],
         ]);
     }
 }
