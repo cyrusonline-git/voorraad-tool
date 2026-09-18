@@ -23,8 +23,8 @@ class ExcelImport
             'serienummer' => 'H', 'depot' => 'J', 'area' => 'K', 'status' => 'M', 'laatste_uithuur' => 'N',
             'ontvangen_op_depot' => 'O', 'vorig_depot' => 'P',
         ],
-        'reserveringen' => [
-            'contract_nr' => 'A', 'status' => 'B', 'district' => 'C', 'depot' => 'D', 'subgroep' => 'E', 'verhuurdatum' => 'F', 'aantal' => '',
+        'reserveringen' => [   // echte export (Wim 18-09): A contract, B status, C district, E depot, F subgroep, G startdatum
+            'contract_nr' => 'A', 'status' => 'B', 'district' => 'C', 'depot' => 'E', 'subgroep' => 'F', 'verhuurdatum' => 'G', 'aantal' => '',
         ],
         'contract' => [
             'subgroep' => 'B', 'artikel_nr' => 'C', 'omschrijving' => 'D', 'type' => 'F', 'status' => 'G',
@@ -46,6 +46,86 @@ class ExcelImport
         'project_nr' => 'Projectnummer', 'project_omschrijving' => 'Projectomschrijving', 'type' => 'Regeltype (Hire / Sub Group booking)',
         'district' => 'District',
     ];
+
+    /**
+     * Kopnamen waaraan een kolom herkend wordt (kleine letters, deel van de tekst).
+     * Gevonden koppen gaan vóór de ingestelde kolomletters — zo maakt het niet uit
+     * of een export de kolommen in een andere volgorde heeft.
+     */
+    public const KOPNAMEN = [
+        'reserveringen' => [
+            'contract_nr' => ['contract number', 'contractnummer', 'contract no'],
+            'status' => ['contract status', 'status'],
+            'district' => ['district'],
+            'depot' => ['depot'],
+            'subgroep' => ['subgroup', 'subgroep', 'sub group'],
+            'verhuurdatum' => ['start date', 'startdatum', 'items start'],
+            'aantal' => ['quantity', 'aantal'],
+        ],
+        'materieel' => [
+            'uniek_nr' => ['unique number', 'uniek nummer', 'machinenummer', 'unique no'],
+            'subgroep' => ['subgroup', 'subgroep'],
+            'omschrijving' => ['subgroup description', 'omschrijving', 'description'],
+            'merk' => ['make', 'merk'],
+            'model' => ['model'],
+            'serienummer' => ['serial number', 'serienummer'],
+            'depot' => ['depot'],
+            'area' => ['area'],
+            'status' => ['status'],
+            'laatste_uithuur' => ['last off-hired', 'off-hired', 'laatste uit'],
+            'ontvangen_op_depot' => ['received on depot', 'ontvangen'],
+            'vorig_depot' => ['previous depot', 'vorig depot'],
+        ],
+    ];
+
+    /**
+     * Kolomindeling afleiden uit de kopregel: per veld de eerste kolom waarvan de
+     * kop één van de kopnamen bevat. Velden zonder match houden de ingestelde letter.
+     */
+    public static function kolommenUitKop(string $type, array $kopRij, array $ingesteld): array
+    {
+        $namen = self::KOPNAMEN[$type] ?? [];
+        if (! $namen) {
+            return $ingesteld;
+        }
+        $koppen = [];
+        foreach ($kopRij as $letter => $waarde) {
+            $t = mb_strtolower(trim((string) $waarde));
+            if ($t !== '') {
+                $koppen[$letter] = $t;
+            }
+        }
+        if (! $koppen) {
+            return $ingesteld;
+        }
+        $uit = $ingesteld;
+        $bezet = [];
+        // Langste/specifiekste kopnaam eerst, zodat 'subgroup description' niet als 'subgroup' telt
+        foreach ($namen as $veld => $zoek) {
+            foreach ($koppen as $letter => $kop) {
+                if (isset($bezet[$letter])) {
+                    continue;
+                }
+                foreach ($zoek as $z) {
+                    $match = $kop === $z || str_starts_with($kop, $z) || str_contains($kop, $z);
+                    // 'subgroup' mag niet 'subgroup description' pakken als dat veld ook bestaat
+                    if ($match && $veld === 'subgroep' && str_contains($kop, 'description')) {
+                        $match = false;
+                    }
+                    if ($match && $veld === 'status' && str_contains($kop, 'district')) {
+                        $match = false;
+                    }
+                    if ($match) {
+                        $uit[$veld] = $letter;
+                        $bezet[$letter] = true;
+                        continue 3;
+                    }
+                }
+            }
+        }
+
+        return $uit;
+    }
 
     /** Statusvertaling: genormaliseerde tekst => code. */
     public const STATUS_MATERIEEL = [
@@ -144,7 +224,8 @@ class ExcelImport
     private function leesReserveringen(string $pad, string $bestandsnaam, Upload $upload, array &$meldingen): array
     {
         $k = self::kolommen('reserveringen');
-        $start = self::kopRij('reserveringen') + 1;
+        $kopRijNr = self::kopRij('reserveringen');
+        $start = $kopRijNr + 1;
         $buffer = [];
         $aantal = 0;
         $overgeslagen = 0;
@@ -152,9 +233,18 @@ class ExcelImport
         $zonderDatum = 0;
         $contracten = [];
         $bladnaam = null;
+        $herkend = null;
         DB::beginTransaction();
         try {
             foreach ($this->rijen($pad, $bestandsnaam, $bladnaam) as $rijNr => $rij) {
+                if ($rijNr === $kopRijNr) {
+                    // Kolommen herkennen aan de kopregel (exports verschillen in volgorde)
+                    $nieuw = self::kolommenUitKop('reserveringen', $rij, $k);
+                    if ($nieuw !== $k) {
+                        $herkend = $nieuw;
+                        $k = $nieuw;
+                    }
+                }
                 if ($rijNr < $start) {
                     continue;
                 }
@@ -204,8 +294,11 @@ class ExcelImport
         $upload->omschrijving = $bladnaam;
         $upload->referentie = count($contracten).' contracten';
         $upload->save();
+        if ($herkend) {
+            $meldingen[] = 'Kolommen herkend aan de kopregel: contract '.$k['contract_nr'].', depot '.$k['depot'].', subgroep '.$k['subgroep'].', startdatum '.$k['verhuurdatum'].'.';
+        }
         if ($zonderDepot > 0) {
-            $meldingen[] = "$zonderDepot regels zonder herkenbaar depotnummer in kolom {$k['depot']}.";
+            $meldingen[] = "$zonderDepot regels zonder herkenbaar depotnummer in kolom {$k['depot']} (verwacht bijv. '759 Industrial Rotterdam'). Controleer de kolomindeling bij Beheer → Kolomindeling.";
         }
         if ($zonderDatum > 0) {
             $meldingen[] = "$zonderDatum regels zonder startdatum (tellen niet mee bij de horizon).";
@@ -256,16 +349,25 @@ class ExcelImport
     private function leesMaterieel(string $pad, string $bestandsnaam, Upload $upload, array &$meldingen): array
     {
         $k = self::kolommen('materieel');
-        $start = self::kopRij('materieel') + 1;
+        $kopRijNr = self::kopRij('materieel');
+        $start = $kopRijNr + 1;
         $buffer = [];
         $aantal = 0;
         $overgeslagen = 0;
         $zonderDepot = 0;
         $statusOnbekend = [];
         $bladnaam = null;
+        $herkend = null;
         DB::beginTransaction();
         try {
             foreach ($this->rijen($pad, $bestandsnaam, $bladnaam) as $rijNr => $rij) {
+                if ($rijNr === $kopRijNr) {
+                    $nieuw = self::kolommenUitKop('materieel', $rij, $k);
+                    if ($nieuw !== $k) {
+                        $herkend = $nieuw;
+                        $k = $nieuw;
+                    }
+                }
                 if ($rijNr < $start) {
                     continue;
                 }
@@ -329,6 +431,9 @@ class ExcelImport
         $upload->save();
         foreach (array_keys($statusOnbekend) as $s) {
             $meldingen[] = "Onbekende status '$s' — voeg een vertaling toe bij Beheer → Kolomindeling.";
+        }
+        if ($herkend) {
+            $meldingen[] = 'Kolommen herkend aan de kopregel: uniek nr '.$k['uniek_nr'].', subgroep '.$k['subgroep'].', depot '.$k['depot'].', status '.$k['status'].'.';
         }
         if ($zonderDepot > 0) {
             $meldingen[] = "$zonderDepot regels zonder herkenbaar depotnummer in kolom {$k['depot']}.";
