@@ -112,7 +112,16 @@ class CoreSso
             return $session->get($cacheKey);
         }
 
-        $cookie = (string) $this->request->header('Cookie', '');
+        // Alleen de cookies van CORE doorsturen (sessie + XSRF), niet onze eigen sessiecookie
+        $delen = [];
+        foreach (explode(';', (string) $this->request->header('Cookie', '')) as $deel) {
+            $deel = trim($deel);
+            $naam = strstr($deel, '=', true);
+            if ($naam !== false && (str_starts_with($naam, 'boels_core') || $naam === 'XSRF-TOKEN')) {
+                $delen[] = $deel;
+            }
+        }
+        $cookie = implode('; ', $delen);
         $data = null;
         if ($cookie !== '') {
             // Referer = onze eigen URL (staat in CORE's SANCTUM_STATEFUL_DOMAINS);

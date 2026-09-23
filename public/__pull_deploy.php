@@ -180,4 +180,4 @@ echo str_repeat('=', 60) . "\n";
 echo "✓ Deploy klaar! Voorraad tool is bijgewerkt.\n";
 echo str_repeat('=', 60) . "\n";
 echo "\nTip: voor een specifieke versie, gebruik:\n";
-echo "  __pull_deploy.php?k=$secret&tag=v1.0.X\n";
+echo "  __pull_deploy.php?k=<DEPLOY_SECRET>&tag=v1.0.X\n";

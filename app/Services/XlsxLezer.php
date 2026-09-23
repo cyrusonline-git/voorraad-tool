@@ -34,7 +34,7 @@ class XlsxLezer
     public function rijen(): \Generator
     {
         $xml = new \XMLReader();
-        if (! $xml->open('zip://'.$this->pad.'#'.$this->bladPad)) {
+        if (! $xml->open('zip://'.$this->pad.'#'.$this->bladPad, null, LIBXML_NONET)) {
             throw new \RuntimeException('Werkblad niet gevonden in het Excel-bestand.');
         }
         $rijNr = 0;
@@ -159,7 +159,7 @@ class XlsxLezer
             return;
         }
         $xml = new \XMLReader();
-        if (! $xml->open('zip://'.$this->pad.'#xl/sharedStrings.xml')) {
+        if (! $xml->open('zip://'.$this->pad.'#xl/sharedStrings.xml', null, LIBXML_NONET)) {
             return;
         }
         $huidig = null;
